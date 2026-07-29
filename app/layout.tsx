@@ -45,9 +45,9 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-4xl">
               <StatusBar />
-              {children}
+              <div className="px-4 sm:px-0">{children}</div>
             </div>
           </TooltipProvider>
         </ThemeProvider>
