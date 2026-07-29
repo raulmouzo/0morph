@@ -20,6 +20,13 @@ export async function StatusBar() {
       <div className="flex items-center gap-4">
         <div className="flex gap-2 rounded-sm p-2 transition-colors hover:bg-foreground/10 dark:hover:bg-muted/25 dark:hover:brightness-150">
           <Image
+            src="/icons/isotype.svg"
+            alt="0morph"
+            width={32}
+            height={32}
+            className="dark:hidden"
+          />
+          <Image
             src="/icons/isotype-dark.svg"
             alt="0morph"
             width={32}
