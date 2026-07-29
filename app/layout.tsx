@@ -3,6 +3,7 @@ import { Space_Mono } from "next/font/google"
 import "./globals.css"
 import { StatusBar } from "@/components/status-bar"
 import { ThemeProvider } from "@/components/theme-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils";
 
 const spaceMono = Space_Mono({
@@ -30,8 +31,10 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <StatusBar />
-          {children}
+          <TooltipProvider>
+            <StatusBar />
+            {children}
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
