@@ -1,10 +1,11 @@
+import localFont from "next/font/local"
 import { Space_Mono } from "next/font/google"
 
 import "./globals.css"
 import { StatusBar } from "@/components/status-bar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
 const spaceMono = Space_Mono({
   subsets: ["latin"],
@@ -18,6 +19,12 @@ const fontMono = Space_Mono({
   variable: "--font-mono",
 })
 
+const nohemi = localFont({
+  src: "./fonts/Nohemi-VF.ttf",
+  variable: "--font-heading",
+  weight: "100 900",
+})
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,13 +34,21 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", spaceMono.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        "font-sans",
+        spaceMono.variable,
+        nohemi.variable
+      )}
     >
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <StatusBar />
-            {children}
+            <div className="mx-auto max-w-7xl">
+              <StatusBar />
+              {children}
+            </div>
           </TooltipProvider>
         </ThemeProvider>
       </body>
