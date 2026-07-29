@@ -1,6 +1,7 @@
 import { Space_Mono } from "next/font/google"
 
 import "./globals.css"
+import { StatusBar } from "@/components/status-bar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,10 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", spaceMono.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <StatusBar />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )
