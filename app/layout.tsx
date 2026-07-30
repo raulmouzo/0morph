@@ -39,7 +39,6 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
       className={cn(
         "antialiased",
         fontMono.variable,
@@ -47,6 +46,7 @@ export default function RootLayout({
         spaceMono.variable,
         nohemi.variable
       )}
+      suppressHydrationWarning
     >
       <body>
         <ThemeProvider>
