@@ -1,10 +1,28 @@
-![0morph](public/github/banner.webp)
+<div align="center">
+  <a href="https://0morph.raulmouzo.com">
+    <img src="public/github/0morph.svg" alt="0morph" width="96" height="96">
+  </a>
 
-# 0morph
+  <h1>0morph-apps</h1>
 
-**No uploads. No accounts. No servers watching over your shoulder.**
+  <p>
+    <strong>No uploads. No accounts. No servers watching over your shoulder.</strong>
+  </p>
+  <p>
+    A collection of fast, private tools that run entirely in your browser.<br/>
+    No backend involved — your files and data never leave your device.
+  </p>
 
-0morph is a collection of fast, private tools that run entirely in your browser. There's no backend involved — your files and data never leave your device.
+  <p>
+    <a href="https://0morph.raulmouzo.com"><strong>0morph.raulmouzo.com »</strong></a>
+  </p>
+
+  <br/>
+
+  <a href="https://0morph.raulmouzo.com">
+    <img src="public/github/banner.webp" alt="0morph-apps banner" width="640">
+  </a>
+</div>
 
 
 ## Getting started
