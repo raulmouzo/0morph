@@ -1,21 +1,28 @@
-# Next.js template
+![0morph](public/github/banner.webp)
 
-This is a Next.js template with shadcn/ui.
+# 0morph
 
-## Adding components
+**No uploads. No accounts. No servers watching over your shoulder.**
 
-To add components to your app, run the following command:
+0morph is a collection of fast, private tools that run entirely in your browser. There's no backend involved — your files and data never leave your device.
+
+
+## Getting started
 
 ```bash
-npx shadcn@latest add button
+pnpm install
+pnpm dev
 ```
 
-This will place the ui components in the `components` directory.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-## Using components
+## Scripts
 
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button";
-```
+| Command          | Description              |
+| ---------------- | ------------------------ |
+| `pnpm dev`       | Start the dev server     |
+| `pnpm build`     | Build for production     |
+| `pnpm start`     | Run the production build |
+| `pnpm lint`      | Lint the codebase        |
+| `pnpm format`    | Format the codebase      |
+| `pnpm typecheck` | Type-check the codebase  |
