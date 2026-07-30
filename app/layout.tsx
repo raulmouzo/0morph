@@ -23,6 +23,12 @@ const nohemi = localFont({
   src: "./fonts/Nohemi-VF.ttf",
   variable: "--font-heading",
   weight: "100 900",
+  declarations: [
+    /* limited availability -> Safari */
+    { prop: "ascent-override", value: "75%" },
+    { prop: "descent-override", value: "10%" },
+    { prop: "line-gap-override", value: "7%" },
+  ],
 })
 
 export default function RootLayout({

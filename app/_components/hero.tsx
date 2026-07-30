@@ -36,6 +36,7 @@ export default function Hero() {
         </p>
         <Button
           className="flex flex-1 transform items-center justify-center gap-2 rounded-full p-8 font-heading text-2xl"
+          nativeButton={false}
           render={
             <a
               href="https://github.com/0morph"
@@ -44,7 +45,7 @@ export default function Hero() {
             />
           }
         >
-          <span className="translate-y-0.5">Go to GitHub</span>
+          <span>Go to GitHub</span>
         </Button>
       </div>
     </div>
