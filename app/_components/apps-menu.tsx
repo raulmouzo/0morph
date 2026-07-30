@@ -13,39 +13,39 @@ const categories: {
   tools: { label: string; href: string }[]
 }[] = [
   {
-    href: "https://images.0morph.com",
+    href: "",
     label: "images",
     index: "01",
     icon: ImagesIcon,
     glow: "bg-accent/50",
     tools: [
-      { label: "Converter", href: "https://images.0morph.com/converter" },
-      { label: "Compressor", href: "https://images.0morph.com/compressor" },
-      { label: "Resizer", href: "https://images.0morph.com/resizer" },
+      { label: "Converter", href: "/converter" },
+      { label: "Compressor", href: "/compressor" },
+      { label: "Resizer", href: "/resizer" },
     ],
   },
   {
-    href: "https://video.0morph.com",
+    href: "",
     label: "video",
     index: "02",
     icon: VideoIcon,
     glow: "bg-secondary/20",
     tools: [
-      { label: "Converter", href: "https://video.0morph.com/converter" },
-      { label: "Compressor", href: "https://video.0morph.com/compressor" },
-      { label: "Trimmer", href: "https://video.0morph.com/trimmer" },
+      { label: "Converter", href: "/converter" },
+      { label: "Compressor", href: "/compressor" },
+      { label: "Trimmer", href: "/trimmer" },
     ],
   },
   {
-    href: "https://audio.0morph.com",
+    href: "",
     label: "audio",
     index: "03",
     icon: AudioIcon,
     glow: "bg-primary/25",
     tools: [
-      { label: "Converter", href: "https://audio.0morph.com/converter" },
-      { label: "Compressor", href: "https://audio.0morph.com/compressor" },
-      { label: "Transcriber", href: "https://audio.0morph.com/transcriber" },
+      { label: "Converter", href: "/converter" },
+      { label: "Compressor", href: "/compressor" },
+      { label: "Transcriber", href: "/transcriber" },
     ],
   },
 ]

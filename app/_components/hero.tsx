@@ -57,7 +57,7 @@ export default function Hero() {
           nativeButton={false}
           render={
             <a
-              href="https://github.com/0morph"
+              href="https://github.com/raulmouzo/0morph"
               target="_blank"
               rel="noreferrer"
             />
