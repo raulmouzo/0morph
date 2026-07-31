@@ -2,7 +2,10 @@
 
 import Image from "next/image"
 import { useTheme } from "next-themes"
+import { useRef } from "react"
 import { Button } from "@/components/ui/button"
+import GithubIcon from "@/components/ui/github-icon"
+import type { AnimatedIconHandle } from "@/components/ui/types"
 import { HeroPill } from "./hero-pill"
 import { useMounted } from "@/hooks/use-mounted"
 
@@ -36,6 +39,8 @@ function HeroImage({ className }: { className?: string }) {
 }
 
 export default function Hero() {
+  const githubIconRef = useRef<AnimatedIconHandle>(null)
+
   return (
     <div className="flex flex-col items-center justify-center gap-2 text-center">
       <div className="w-full py-10">
@@ -53,8 +58,10 @@ export default function Hero() {
           entirely in your browser.
         </p>
         <Button
-          className="flex flex-1 transform items-center justify-center gap-2 rounded-full p-8 font-heading text-2xl"
+          className="group relative flex flex-1 transform items-center justify-center gap-2 rounded-full px-4 py-2 text-lg sm:p-8 sm:font-heading sm:text-2xl"
           nativeButton={false}
+          onMouseEnter={() => githubIconRef.current?.startAnimation()}
+          onMouseLeave={() => githubIconRef.current?.stopAnimation()}
           render={
             <a
               href="https://github.com/raulmouzo/0morph"
@@ -63,7 +70,13 @@ export default function Hero() {
             />
           }
         >
-          <span>Go to GitHub</span>
+          <span className="transition-opacity duration-200 ease-out group-hover:opacity-0">
+            Support on GitHub
+          </span>
+          <GithubIcon
+            ref={githubIconRef}
+            className="absolute top-1/2 left-1/2 size-8 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
+          />
         </Button>
       </div>
     </div>
