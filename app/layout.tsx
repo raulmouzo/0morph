@@ -2,6 +2,7 @@ import localFont from "next/font/local"
 import { Space_Mono } from "next/font/google"
 
 import "./globals.css"
+import { AssetProvider } from "@/components/asset-provider"
 import { StatusBar } from "@/components/status-bar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -51,10 +52,12 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <div className="mx-auto max-w-4xl">
-              <StatusBar />
-              <div className="px-4 sm:px-0">{children}</div>
-            </div>
+            <AssetProvider>
+              <div className="mx-auto max-w-4xl">
+                <StatusBar />
+                <div className="px-4 sm:px-0">{children}</div>
+              </div>
+            </AssetProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>
