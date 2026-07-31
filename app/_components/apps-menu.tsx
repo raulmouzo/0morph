@@ -29,7 +29,9 @@ export function AppMenu({ className }: { className?: string }) {
           <span className="relative flex items-center gap-1 font-heading text-lg text-foreground">
             <span className="text-muted-foreground/70">.</span>
             {label}
-            <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover/card:opacity-100" />
+            <span className="w-0 overflow-hidden transition-all duration-300 ease-out group-hover/card:w-4">
+              <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-opacity duration-300 ease-out group-hover/card:opacity-100" />
+            </span>
           </span>
         </Link>
       ))}
