@@ -12,6 +12,13 @@ export default function Page() {
           <ImportDropzone />
         </div>
       </Artboard>
+      <div className="flex w-full max-w-4xl items-center gap-4">
+        <span className="h-px flex-1 bg-border" />
+        <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+          Or go your own way
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
       <AppMenu className="mx-auto w-full" />
     </div>
   )
