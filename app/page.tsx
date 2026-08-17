@@ -3,10 +3,6 @@ import { ImportDropzone } from "@/components/import-dropzone"
 import { AppMenu } from "./_components/apps-menu"
 import Hero from "./_components/hero"
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 export default function Page() {
   return (
     <div className="flex flex-col items-center justify-center gap-10 py-10">

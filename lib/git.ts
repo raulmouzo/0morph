@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process"
 
+import { connection } from "next/server"
+
 export type LastCommit = {
   hash: string
   insertions: number
@@ -35,7 +37,9 @@ function relativeTime(date: Date): string {
   return `${rounded} ${unit}${rounded === 1 ? "" : "s"} ago`
 }
 
-export function getLastCommit(): LastCommit | null {
+export async function getLastCommit(): Promise<LastCommit | null> {
+  await connection()
+
   try {
     const hash = execSync("git rev-parse --short HEAD").toString().trim()
     const isoDate = execSync("git log -1 --format=%cI").toString().trim()
