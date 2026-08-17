@@ -1,5 +1,6 @@
 import localFont from "next/font/local"
 import { Space_Mono } from "next/font/google"
+import { Suspense } from "react"
 
 import "./globals.css"
 import { AssetProvider } from "@/components/asset-provider"
@@ -54,7 +55,9 @@ export default function RootLayout({
           <TooltipProvider>
             <AssetProvider>
               <div className="mx-auto max-w-4xl">
-                <StatusBar />
+                <Suspense fallback={<div className="h-9 w-full" />}>
+                  <StatusBar />
+                </Suspense>
                 <div className="px-4 sm:px-0">{children}</div>
               </div>
             </AssetProvider>

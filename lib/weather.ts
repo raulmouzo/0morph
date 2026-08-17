@@ -1,3 +1,5 @@
+import { connection } from "next/server"
+
 import {
   Cloud,
   CloudDrizzle,
@@ -88,6 +90,8 @@ const WEATHER_ICONS: Record<number, { day: LucideIcon; night: LucideIcon }> = {
 }
 
 export async function getWeather(coords: Coordinates): Promise<Weather | null> {
+  await connection()
+
   try {
     const params = new URLSearchParams({
       latitude: String(coords.latitude),
