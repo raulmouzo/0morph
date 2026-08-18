@@ -48,7 +48,12 @@ export default function NotFoundPage() {
       </div>
       <div className="flex min-h-[calc(100dvh-2.25rem)] items-center justify-center">
         <div className="m-auto flex flex-col items-center gap-4 px-6 sm:max-w-md sm:gap-15 sm:px-0 md:max-w-4xl">
-          <NotFoundGrid className="m-auto w-full max-w-44 -translate-x-1 sm:max-w-xl md:max-w-sm lg:max-w-md" />
+          <p className="font-heading text-7xl font-bold text-foreground sm:hidden">
+            404
+          </p>
+          <div className="hidden w-full sm:block sm:max-w-xl md:max-w-sm lg:max-w-md">
+            <NotFoundGrid className="m-auto w-full -translate-x-1" />
+          </div>
           <div className="flex flex-col items-center gap-5 text-center sm:gap-5">
             <div className="flex flex-col items-center gap-1 sm:gap-5">
               <h1 className="font-heading text-lg font-bold text-foreground sm:text-5xl">
