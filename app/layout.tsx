@@ -54,11 +54,11 @@ export default function RootLayout({
         <ThemeProvider>
           <TooltipProvider>
             <AssetProvider>
-              <div className="mx-auto max-w-4xl">
+              <div className="mx-auto flex min-h-screen max-w-4xl flex-col">
                 <Suspense fallback={<div className="h-9 w-full" />}>
                   <StatusBar />
                 </Suspense>
-                <div className="px-4 sm:px-0">{children}</div>
+                <div className="flex-1 px-4 sm:px-0">{children}</div>
               </div>
             </AssetProvider>
           </TooltipProvider>

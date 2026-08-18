@@ -4,6 +4,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes gentle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: gentle-float 6s ease-in-out 1.5s infinite;
+}
+
 @theme inline {
     --font-heading: var(--font-heading);
     --font-sans: var(--font-sans);

@@ -121,13 +121,22 @@ export function NotFoundGrid({ className }: { className?: string }) {
         row.map((icon, x) => (
           <div key={`${x}-${y}`} className="aspect-square p-0.5">
             {icon > 0 && (
-              <Image
-                src={`/icons/404/${icon}.svg`}
-                alt=""
-                width={69}
-                height={69}
-                className="size-full"
-              />
+              <>
+                <Image
+                  src={`/icons/404/${icon}.svg`}
+                  alt=""
+                  width={69}
+                  height={69}
+                  className="size-full dark:hidden"
+                />
+                <Image
+                  src={`/icons/404/${icon}-dark.svg`}
+                  alt=""
+                  width={69}
+                  height={69}
+                  className="hidden size-full dark:block"
+                />
+              </>
             )}
           </div>
         ))
