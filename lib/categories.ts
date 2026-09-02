@@ -9,6 +9,7 @@ export type Category = {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   glow: string
   mimePrefix: string
+  enabled: boolean
 }
 
 export const CATEGORIES: Category[] = [
@@ -19,6 +20,7 @@ export const CATEGORIES: Category[] = [
     icon: ImagesIcon,
     glow: "bg-accent/50",
     mimePrefix: "image/",
+    enabled: true,
   },
   {
     id: "video",
@@ -27,6 +29,7 @@ export const CATEGORIES: Category[] = [
     icon: VideoIcon,
     glow: "bg-secondary/20",
     mimePrefix: "video/",
+    enabled: false,
   },
   {
     id: "audio",
@@ -35,11 +38,16 @@ export const CATEGORIES: Category[] = [
     icon: AudioIcon,
     glow: "bg-primary/25",
     mimePrefix: "audio/",
+    enabled: false,
   },
 ]
 
+export const ENABLED_CATEGORIES = CATEGORIES.filter(
+  (category) => category.enabled
+)
+
 export function detectCategory(file: File) {
-  return CATEGORIES.find((category) =>
+  return ENABLED_CATEGORIES.find((category) =>
     file.type.startsWith(category.mimePrefix)
   )
 }

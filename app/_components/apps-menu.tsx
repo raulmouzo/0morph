@@ -1,13 +1,13 @@
 import { ArrowUpRight } from "lucide-react"
 import Link from "next/link"
 
-import { CATEGORIES } from "@/lib/categories"
+import { ENABLED_CATEGORIES } from "@/lib/categories"
 import { cn } from "@/lib/utils"
 
 export function AppMenu({ className }: { className?: string }) {
   return (
-    <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-3", className)}>
-      {CATEGORIES.map(({ id, label, href, icon: Icon, glow }, i) => (
+    <div className={cn("grid grid-cols-1 gap-3", className)}>
+      {ENABLED_CATEGORIES.map(({ id, label, href, icon: Icon, glow }, i) => (
         <Link
           key={id}
           href={href}

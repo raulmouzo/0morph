@@ -66,7 +66,7 @@ export function ImportDropzone() {
         <label className="flex size-20 cursor-pointer items-center justify-center border-2 border-foreground transition-colors hover:bg-foreground/5 sm:size-24">
           <input
             type="file"
-            accept="image/*,video/*,audio/*"
+            accept="image/*"
             onChange={onInputChange}
             className="sr-only"
           />
@@ -75,11 +75,10 @@ export function ImportDropzone() {
 
         <div className="flex flex-col items-center gap-3">
           <h2 className="font-heading text-2xl font-bold text-foreground uppercase sm:text-4xl">
-            Import any asset
+            Import an image
           </h2>
           <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
-            Drop an image, video or audio file — we detect the format and open
-            the right tool. Nothing ever leaves your browser.
+            Drop an image file. Nothing ever leaves your browser.
           </p>
           {unsupported && (
             <p className="font-mono text-xs text-destructive uppercase">
