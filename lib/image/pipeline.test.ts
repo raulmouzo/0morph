@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest"
 
-import { openSource, readInfo, render } from "./pipeline"
-import { OUTPUT_FORMATS, type ImageRecipe } from "./recipe"
+import { openSource, readInfo, render, renderReference } from "./pipeline"
+import {
+  flipGeometry,
+  IDENTITY_GEOMETRY,
+  OUTPUT_FORMATS,
+  rotateGeometry,
+  type Encoding,
+  type Geometry,
+  type ImageRecipe,
+} from "./recipe"
 import { loadVips, readSample, SAMPLES } from "./test-utils"
 
 const LOADERS = {
@@ -11,10 +19,12 @@ const LOADERS = {
   avif: "heifload_buffer",
 } as const
 
-const recipe = (overrides: Partial<ImageRecipe> = {}): ImageRecipe => ({
-  format: "webp",
-  quality: 80,
-  ...overrides,
+const recipe = (
+  encoding: Partial<Encoding> = {},
+  geometry: Partial<Geometry> = {}
+): ImageRecipe => ({
+  geometry: { ...IDENTITY_GEOMETRY, ...geometry },
+  encoding: { format: "webp", quality: 80, ...encoding },
 })
 
 describe("openSource", () => {
@@ -42,7 +52,7 @@ describe("render", () => {
     const decoded = vips.Image.newFromBuffer(output.data)
 
     expect(decoded.getString("vips-loader")).toBe(LOADERS[format])
-    expect([decoded.width, decoded.height]).toEqual([source.width, 720])
+    expect([decoded.width, decoded.height]).toEqual([576, 720])
     expect([output.width, output.height]).toEqual([576, 720])
     decoded.delete()
     source.delete()
@@ -70,5 +80,82 @@ describe("render", () => {
     expect(decoded.getpoint(4, 4).every((value) => value > 250)).toBe(true)
     decoded.delete()
     transparent.delete()
+  })
+
+  it("rotates the output dimensions", async () => {
+    const vips = await loadVips()
+    const source = openSource(vips, await readSample("cameraman-wide.jpg"))
+    const output = render(source, recipe({}, { rotate: 90 }))
+    source.delete()
+
+    expect([output.width, output.height]).toEqual([800, 1600])
+  })
+})
+
+describe("renderReference geometry", () => {
+  // 3×2 image whose pixel values are their reading order:
+  // 1 2 3
+  // 4 5 6
+  async function pixelsAfter(geometry: Geometry) {
+    const vips = await loadVips()
+    const pixels = new Uint8Array([1, 2, 3, 4, 5, 6])
+    const source = vips.Image.newFromMemory(
+      pixels,
+      3,
+      2,
+      1,
+      vips.BandFormat.uchar
+    )
+    const output = renderReference(source, geometry)
+    const decoded = vips.Image.newFromBuffer(output.data)
+    const rows = Array.from({ length: decoded.height }, (_, y) =>
+      Array.from({ length: decoded.width }, (_, x) => decoded.getpoint(x, y)[0])
+    )
+    decoded.delete()
+    source.delete()
+    return rows
+  }
+
+  const geometry = (changes: Partial<Geometry>) => ({
+    ...IDENTITY_GEOMETRY,
+    ...changes,
+  })
+
+  it("rotates clockwise", async () => {
+    expect(await pixelsAfter(geometry({ rotate: 90 }))).toEqual([
+      [4, 1],
+      [5, 2],
+      [6, 3],
+    ])
+  })
+
+  it("flips both axes", async () => {
+    expect(await pixelsAfter(geometry({ flipHorizontal: true }))).toEqual([
+      [3, 2, 1],
+      [6, 5, 4],
+    ])
+    expect(await pixelsAfter(geometry({ flipVertical: true }))).toEqual([
+      [4, 5, 6],
+      [1, 2, 3],
+    ])
+  })
+
+  it("rotating after a flip rotates the mirrored image", async () => {
+    const mirrored = flipGeometry(IDENTITY_GEOMETRY, "horizontal")
+    const rotated = rotateGeometry(mirrored, "clockwise")
+
+    // The mirror [[3,2,1],[6,5,4]] turned 90° clockwise.
+    expect(await pixelsAfter(rotated)).toEqual([
+      [6, 3],
+      [5, 2],
+      [4, 1],
+    ])
+  })
+
+  it("four rotations return to the start", async () => {
+    let current = flipGeometry(IDENTITY_GEOMETRY, "vertical")
+    for (let i = 0; i < 4; i++) current = rotateGeometry(current, "clockwise")
+
+    expect(current).toEqual(flipGeometry(IDENTITY_GEOMETRY, "vertical"))
   })
 })

@@ -8,25 +8,25 @@ import { Slider } from "@/components/ui/slider"
 import {
   FORMATS,
   OUTPUT_FORMATS,
-  type ImageRecipe,
+  type Encoding,
   type OutputFormat,
 } from "@/lib/image/recipe"
 import { SettingsSection } from "./settings-section"
 
 export function ExportSettings({
-  recipe,
+  encoding,
   onChange,
 }: {
-  recipe: ImageRecipe
-  onChange: (changes: Partial<ImageRecipe>) => void
+  encoding: Encoding
+  onChange: (changes: Partial<Encoding>) => void
 }) {
-  const lossy = FORMATS[recipe.format].lossy
+  const lossy = FORMATS[encoding.format].lossy
 
   return (
     <SettingsSection title="Export">
       <SegmentedControl<OutputFormat>
         aria-label="Output format"
-        value={recipe.format}
+        value={encoding.format}
         onValueChange={(format) => onChange({ format })}
       >
         {OUTPUT_FORMATS.map((format) => (
@@ -37,13 +37,13 @@ export function ExportSettings({
       </SegmentedControl>
 
       <QualitySlider
-        quality={recipe.quality}
+        quality={encoding.quality}
         disabled={!lossy}
         onCommit={(quality) => onChange({ quality })}
       />
       {!lossy && (
         <p className="text-xs text-muted-foreground">
-          {FORMATS[recipe.format].label} is lossless, quality doesn&apos;t
+          {FORMATS[encoding.format].label} is lossless, quality doesn&apos;t
           apply.
         </p>
       )}

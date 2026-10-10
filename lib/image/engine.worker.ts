@@ -6,7 +6,14 @@ import type {
   EngineRequest,
   EngineResponse,
 } from "./engine-protocol"
-import { openSource, readInfo, render, type VipsInstance } from "./pipeline"
+import {
+  openSource,
+  readInfo,
+  render,
+  renderReference,
+  type RenderResult,
+  type VipsInstance,
+} from "./pipeline"
 
 // Served from public/ (see scripts/copy-wasm-vips.mjs) and loaded at runtime,
 // so the bundler leaves wasm-vips and its .wasm files untouched.
@@ -45,6 +52,11 @@ function ownBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.slice().buffer
 }
 
+function transferable({ data, width, height }: RenderResult) {
+  const buffer = ownBuffer(data)
+  return { result: { data: buffer, width, height }, transfer: [buffer] }
+}
+
 const handlers: Handlers = {
   open(vips, { key, data }) {
     sources.get(key)?.delete()
@@ -53,9 +65,10 @@ const handlers: Handlers = {
     return { result: readInfo(source) }
   },
   render(_vips, { key, recipe }) {
-    const { data, width, height } = render(getSource(key), recipe)
-    const buffer = ownBuffer(data)
-    return { result: { data: buffer, width, height }, transfer: [buffer] }
+    return transferable(render(getSource(key), recipe))
+  },
+  reference(_vips, { key, geometry }) {
+    return transferable(renderReference(getSource(key), geometry))
   },
   close(_vips, { key }) {
     sources.get(key)?.delete()

@@ -6,9 +6,10 @@ import {
   formatSizeChange,
   outputFileName,
 } from "@/lib/image/format"
+import type { ImageRecipe } from "@/lib/image/recipe"
 import { cn } from "@/lib/utils"
 import { SettingsSection } from "./settings-section"
-import type { RenderedImage } from "./use-render"
+import type { Rendered } from "./use-render"
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -28,7 +29,7 @@ export function OutputSummary({
 }: {
   sourceName: string
   sourceSize: number
-  output: RenderedImage | null
+  output: Rendered<ImageRecipe> | null
   pending: boolean
   error: string | null
 }) {
@@ -77,7 +78,7 @@ export function OutputSummary({
       ) : output ? (
         <a
           href={output.url}
-          download={outputFileName(sourceName, output.recipe.format)}
+          download={outputFileName(sourceName, output.input.encoding.format)}
           className={cn(buttonVariants({ size: "lg" }), "w-full")}
         >
           <Download aria-hidden />

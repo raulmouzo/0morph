@@ -1,6 +1,6 @@
 import type Vips from "wasm-vips"
 
-import type { ImageRecipe } from "./recipe"
+import type { Encoding, Geometry, ImageRecipe } from "./recipe"
 
 export type VipsInstance = typeof Vips
 
@@ -60,7 +60,24 @@ export function openSource(
   })
 }
 
-function encode(image: Vips.Image, { format, quality }: ImageRecipe) {
+const ROTATION_ANGLES = { 90: "d90", 180: "d180", 270: "d270" } as const
+
+/** Rotates, then flips. Every intermediate image is registered with `own`. */
+function applyGeometry(
+  source: Vips.Image,
+  geometry: Geometry,
+  own: (image: Vips.Image) => Vips.Image
+) {
+  let image = source
+  if (geometry.rotate !== 0) {
+    image = own(image.rot(ROTATION_ANGLES[geometry.rotate]))
+  }
+  if (geometry.flipHorizontal) image = own(image.flip("horizontal"))
+  if (geometry.flipVertical) image = own(image.flip("vertical"))
+  return image
+}
+
+function encode(image: Vips.Image, { format, quality }: Encoding) {
   switch (format) {
     case "jpeg":
       // mozjpeg tuning, the same set sharp enables with `mozjpeg: true`.
@@ -89,12 +106,31 @@ function encode(image: Vips.Image, { format, quality }: ImageRecipe) {
 /** Applies `recipe` to an image opened with `openSource` and encodes it. */
 export function render(source: Vips.Image, recipe: ImageRecipe): RenderResult {
   return withOwned((own) => {
-    let image = source
-    if (recipe.format === "jpeg" && image.hasAlpha()) {
+    let image = applyGeometry(source, recipe.geometry, own)
+    if (recipe.encoding.format === "jpeg" && image.hasAlpha()) {
       image = own(image.flatten({ background: JPEG_BACKGROUND }))
     }
     return {
-      data: encode(image, recipe),
+      data: encode(image, recipe.encoding),
+      width: image.width,
+      height: image.height,
+    }
+  })
+}
+
+/**
+ * Applies only `geometry` and encodes losslessly, to show the "before" side
+ * of a comparison with the same framing as the output. PNG at the lowest
+ * compression level is the fastest lossless format to write.
+ */
+export function renderReference(
+  source: Vips.Image,
+  geometry: Geometry
+): RenderResult {
+  return withOwned((own) => {
+    const image = applyGeometry(source, geometry, own)
+    return {
+      data: image.pngsaveBuffer({ compression: 1 }),
       width: image.width,
       height: image.height,
     }

@@ -10,13 +10,21 @@ import { useAsset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { formatBytes } from "@/lib/image/format"
-import { FORMATS, initialRecipe, type ImageRecipe } from "@/lib/image/recipe"
+import {
+  FORMATS,
+  initialRecipe,
+  isIdentityGeometry,
+  type Encoding,
+  type Geometry,
+  type ImageRecipe,
+} from "@/lib/image/recipe"
 import { CompareView } from "./compare-view"
 import { ExportSettings } from "./export-settings"
 import { OutputSummary } from "./output-summary"
 import { PreviewFrame } from "./preview-frame"
+import { TransformSettings } from "./transform-settings"
 import { useEngineImage } from "./use-engine-image"
-import { useRender } from "./use-render"
+import { useReference, useRender } from "./use-render"
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
@@ -91,9 +99,18 @@ function Editor({
   )
   const key = image.status === "ready" ? image.key : null
   const { output, pending, error } = useRender(key, recipe)
+  // The original already matches an untransformed output, so the lossless
+  // reference is only rendered once the geometry changes.
+  const identity = isIdentityGeometry(recipe.geometry)
+  const reference = useReference(identity ? null : key, recipe.geometry)
 
-  const updateRecipe = (changes: Partial<ImageRecipe>) =>
-    setRecipe((current) => ({ ...current, ...changes }))
+  const updateGeometry = (geometry: Geometry) =>
+    setRecipe((current) => ({ ...current, geometry }))
+  const updateEncoding = (changes: Partial<Encoding>) =>
+    setRecipe((current) => ({
+      ...current,
+      encoding: { ...current.encoding, ...changes },
+    }))
 
   const shown = output ?? (image.status === "ready" ? image.info : null)
 
@@ -102,14 +119,16 @@ function Editor({
       <PreviewFrame
         width={shown?.width}
         height={shown?.height}
-        busy={image.status === "loading" || pending}
+        busy={image.status === "loading" || pending || reference.pending}
       >
         <CompareView
-          before={previewUrl}
+          before={identity ? previewUrl : (reference.output?.url ?? previewUrl)}
           after={output?.url ?? previewUrl}
           alt={file.name}
           afterLabel={
-            output ? `After · ${FORMATS[output.recipe.format].label}` : "After"
+            output
+              ? `After · ${FORMATS[output.input.encoding.format].label}`
+              : "After"
           }
         />
       </PreviewFrame>
@@ -147,7 +166,14 @@ function Editor({
 
         {image.status === "ready" && (
           <>
-            <ExportSettings recipe={recipe} onChange={updateRecipe} />
+            <TransformSettings
+              geometry={recipe.geometry}
+              onChange={updateGeometry}
+            />
+            <ExportSettings
+              encoding={recipe.encoding}
+              onChange={updateEncoding}
+            />
             <OutputSummary
               sourceName={file.name}
               sourceSize={file.size}

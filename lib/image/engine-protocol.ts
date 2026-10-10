@@ -1,5 +1,5 @@
 import type { ImageInfo } from "./pipeline"
-import type { ImageRecipe } from "./recipe"
+import type { Geometry, ImageRecipe } from "./recipe"
 
 export type RenderOutput = {
   data: ArrayBuffer
@@ -14,6 +14,11 @@ export type EngineCommands = {
   /** Applies a recipe to an open image and returns the encoded file. */
   render: {
     params: { key: string; recipe: ImageRecipe }
+    result: RenderOutput
+  }
+  /** Applies only the geometry, encoded losslessly for comparisons. */
+  reference: {
+    params: { key: string; geometry: Geometry }
     result: RenderOutput
   }
   /** Releases an image opened with `open`. */
