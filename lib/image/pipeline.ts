@@ -1,6 +1,7 @@
 import type Vips from "wasm-vips"
 
 import {
+  cropPixels,
   resizedSize,
   type Encoding,
   type Geometry,
@@ -90,8 +91,9 @@ function resizeTo(image: Vips.Image, target: Size, own: Own) {
 }
 
 /**
- * Rotates, flips, then resizes once to the final size (resize and max
- * dimension combined). Every intermediate image is registered with `own`.
+ * Rotates, flips, crops, then resizes once to the final size (resize and
+ * max dimension combined). Every intermediate image is registered with
+ * `own`.
  */
 function applyGeometry(source: Vips.Image, geometry: Geometry, own: Own) {
   let image = source
@@ -100,6 +102,10 @@ function applyGeometry(source: Vips.Image, geometry: Geometry, own: Own) {
   }
   if (geometry.flipHorizontal) image = own(image.flip("horizontal"))
   if (geometry.flipVertical) image = own(image.flip("vertical"))
+  if (geometry.crop) {
+    const area = cropPixels(image, geometry.crop)
+    image = own(image.extractArea(area.left, area.top, area.width, area.height))
+  }
   return resizeTo(image, resizedSize(image, geometry), own)
 }
 

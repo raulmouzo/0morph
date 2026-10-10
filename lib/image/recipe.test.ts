@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  applyCrop,
+  cropPixels,
   IDENTITY_GEOMETRY,
   outputSize,
   rotateGeometry,
@@ -72,5 +74,35 @@ describe("rotateGeometry", () => {
       keepAspect: false,
     })
     expect(outputSize(source, rotated)).toEqual({ width: 200, height: 400 })
+  })
+})
+
+describe("cropPixels", () => {
+  it("converts percentages to whole pixels inside the image", () => {
+    expect(cropPixels(source, { x: 25, y: 10, width: 50, height: 80 })).toEqual(
+      { left: 400, top: 80, width: 800, height: 640 }
+    )
+  })
+
+  it("never leaves the image or collapses to zero", () => {
+    expect(
+      cropPixels(source, { x: 99.99, y: 99.99, width: 5, height: 0.001 })
+    ).toEqual({ left: 1599, top: 799, width: 1, height: 1 })
+  })
+})
+
+describe("applyCrop", () => {
+  it("drops a crop that covers the whole image", () => {
+    const full = { x: 0, y: 0, width: 100, height: 100 }
+    expect(applyCrop(IDENTITY_GEOMETRY, full, source).crop).toBeNull()
+  })
+
+  it("keeps a proportional resize's width for the new framing", () => {
+    const resize = { width: 800, height: 400, keepAspect: true }
+    const square = { x: 25, y: 0, width: 50, height: 100 }
+    const next = applyCrop(geometry({ resize }), square, source)
+
+    expect(next.resize).toEqual({ width: 800, height: 800, keepAspect: true })
+    expect(outputSize(source, next)).toEqual({ width: 800, height: 800 })
   })
 })

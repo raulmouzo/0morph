@@ -184,6 +184,31 @@ describe("renderReference geometry", () => {
     ])
   })
 
+  // Middle and right column of the top row: [[2, 3]].
+  const topRight = { x: 100 / 3, y: 0, width: 200 / 3, height: 50 }
+
+  it("crops", async () => {
+    expect(await pixelsAfter(geometry({ crop: topRight }))).toEqual([[2, 3]])
+  })
+
+  it("rotating after a crop rotates the cropped image", async () => {
+    const cropped = geometry({ crop: topRight })
+    expect(await pixelsAfter(rotateGeometry(cropped, "clockwise"))).toEqual([
+      [2],
+      [3],
+    ])
+    expect(
+      await pixelsAfter(rotateGeometry(cropped, "counterclockwise"))
+    ).toEqual([[3], [2]])
+  })
+
+  it("flipping after a crop flips the cropped image", async () => {
+    const cropped = geometry({ crop: topRight })
+    expect(await pixelsAfter(flipGeometry(cropped, "horizontal"))).toEqual([
+      [3, 2],
+    ])
+  })
+
   it("four rotations return to the start", async () => {
     let current = flipGeometry(IDENTITY_GEOMETRY, "vertical")
     for (let i = 0; i < 4; i++) current = rotateGeometry(current, "clockwise")

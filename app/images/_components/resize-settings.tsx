@@ -19,23 +19,23 @@ const NO_LIMIT = "none"
 
 export function ResizeSettings({
   geometry,
-  oriented,
+  framed,
   onChange,
 }: {
   geometry: Geometry
-  /** Image size before resizing (after rotation). */
-  oriented: Size
+  /** Image size before resizing (after rotating and cropping). */
+  framed: Size
   onChange: (changes: Partial<Geometry>) => void
 }) {
   const { resize } = geometry
   const maxSideLabelId = useId()
   const [lockPreference, setLockPreference] = useState(true)
   const lock = resize ? resize.keepAspect : lockPreference
-  const ratio = oriented.width / oriented.height
+  const ratio = framed.width / framed.height
 
   // The inputs show a draft while typing; it resets whenever the committed
   // size changes from outside (rotation, reset, a new crop).
-  const committed = resize ?? oriented
+  const committed = resize ?? framed
   const [draft, setDraft] = useState<Size>(committed)
   const [basis, setBasis] = useState<Size>(committed)
   if (basis.width !== committed.width || basis.height !== committed.height) {
@@ -55,7 +55,7 @@ export function ResizeSettings({
   const commit = (size: Size) => {
     setDraft(size)
     const unchanged =
-      size.width === oriented.width && size.height === oriented.height
+      size.width === framed.width && size.height === framed.height
     onChange({ resize: unchanged ? null : { ...size, keepAspect: lock } })
   }
 
@@ -118,7 +118,7 @@ export function ResizeSettings({
           className="self-start"
           onClick={() => onChange({ resize: null })}
         >
-          Reset to {oriented.width} × {oriented.height}
+          Reset to {framed.width} × {framed.height}
         </Button>
       )}
 

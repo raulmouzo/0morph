@@ -25,6 +25,20 @@ export type Resize = Size & {
   keepAspect: boolean
 }
 
+/** Crop rectangle in percent (0–100) of the rotated, flipped image. */
+export type CropRect = { x: number; y: number; width: number; height: number }
+
+export const CROP_ASPECTS = [
+  { label: "Free", value: null },
+  { label: "1:1", value: 1 },
+  { label: "4:3", value: 4 / 3 },
+  { label: "3:4", value: 3 / 4 },
+  { label: "3:2", value: 3 / 2 },
+  { label: "2:3", value: 2 / 3 },
+  { label: "16:9", value: 16 / 9 },
+  { label: "9:16", value: 9 / 16 },
+] as const
+
 /** Longest-side limits offered for "max dimension". */
 export const MAX_DIMENSIONS = [3840, 2560, 1920, 1280] as const
 
@@ -33,12 +47,13 @@ export const MAX_RESIZE = 16384
 
 /**
  * Edits that change which pixels end up in the output. Applied in a fixed
- * order: rotate, flip, resize, then limit the longest side.
+ * order: rotate, flip, crop, resize, then limit the longest side.
  */
 export type Geometry = {
   rotate: Rotation
   flipHorizontal: boolean
   flipVertical: boolean
+  crop: CropRect | null
   resize: Resize | null
   /** Shrinks the image so its longest side is at most this many pixels. */
   maxDimension: number | null
@@ -66,6 +81,7 @@ export const IDENTITY_GEOMETRY: Geometry = {
   rotate: 0,
   flipHorizontal: false,
   flipVertical: false,
+  crop: null,
   resize: null,
   maxDimension: null,
 }
@@ -85,6 +101,7 @@ export function isIdentityGeometry(geometry: Geometry) {
     geometry.rotate === 0 &&
     !geometry.flipHorizontal &&
     !geometry.flipVertical &&
+    geometry.crop === null &&
     geometry.resize === null &&
     geometry.maxDimension === null
   )
@@ -97,16 +114,55 @@ function scaleSize({ width, height }: Size, scale: number): Size {
   }
 }
 
-/** Size after rotating, before any resizing. */
+/** Size after rotating, before cropping. */
 export function orientedSize(source: Size, geometry: Geometry): Size {
   return geometry.rotate % 180 === 0
     ? { width: source.width, height: source.height }
     : { width: source.height, height: source.width }
 }
 
-/** Applies the resize and max-dimension steps to an oriented size. */
-export function resizedSize(oriented: Size, geometry: Geometry): Size {
-  let size = oriented
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max)
+
+/** The crop rectangle in whole pixels of an image of size `oriented`. */
+export function cropPixels(oriented: Size, crop: CropRect) {
+  const left = clamp(
+    Math.round((crop.x / 100) * oriented.width),
+    0,
+    oriented.width - 1
+  )
+  const top = clamp(
+    Math.round((crop.y / 100) * oriented.height),
+    0,
+    oriented.height - 1
+  )
+  return {
+    left,
+    top,
+    width: clamp(
+      Math.round((crop.width / 100) * oriented.width),
+      1,
+      oriented.width - left
+    ),
+    height: clamp(
+      Math.round((crop.height / 100) * oriented.height),
+      1,
+      oriented.height - top
+    ),
+  }
+}
+
+/** Size after rotating and cropping, before any resizing. */
+export function framedSize(source: Size, geometry: Geometry): Size {
+  const oriented = orientedSize(source, geometry)
+  if (!geometry.crop) return oriented
+  const { width, height } = cropPixels(oriented, geometry.crop)
+  return { width, height }
+}
+
+/** Applies the resize and max-dimension steps to a framed size. */
+export function resizedSize(framed: Size, geometry: Geometry): Size {
+  let size = framed
   const { resize, maxDimension } = geometry
   if (resize) {
     size = resize.keepAspect
@@ -125,26 +181,73 @@ export function resizedSize(oriented: Size, geometry: Geometry): Size {
 
 /** Final output size for a source of the given size. */
 export function outputSize(source: Size, geometry: Geometry): Size {
-  return resizedSize(orientedSize(source, geometry), geometry)
+  return resizedSize(framedSize(source, geometry), geometry)
+}
+
+const isFullRect = (rect: CropRect) =>
+  rect.x <= 0.01 &&
+  rect.y <= 0.01 &&
+  rect.width >= 99.99 &&
+  rect.height >= 99.99
+
+/**
+ * Sets the crop (null, or one covering the whole image, removes it). A
+ * proportional resize keeps its width and adapts its height to the new
+ * framing.
+ */
+export function applyCrop(
+  geometry: Geometry,
+  crop: CropRect | null,
+  source: Size
+): Geometry {
+  const next = { ...geometry, crop: crop && !isFullRect(crop) ? crop : null }
+  const { resize } = geometry
+  if (resize?.keepAspect) {
+    const framed = framedSize(source, next)
+    next.resize = {
+      ...resize,
+      height: Math.max(
+        1,
+        Math.round((resize.width * framed.height) / framed.width)
+      ),
+    }
+  }
+  return next
+}
+
+function rotateRect(rect: CropRect, clockwise: boolean): CropRect {
+  return {
+    x: clockwise ? 100 - rect.y - rect.height : rect.y,
+    y: clockwise ? rect.x : 100 - rect.x - rect.width,
+    width: rect.height,
+    height: rect.width,
+  }
+}
+
+function flipRect(rect: CropRect, horizontal: boolean): CropRect {
+  return horizontal
+    ? { ...rect, x: 100 - rect.x - rect.width }
+    : { ...rect, y: 100 - rect.y - rect.height }
 }
 
 /**
  * Rotates what is currently shown by 90° in `direction`. Because flips are
  * applied after the rotation, rotating a flipped image swaps the flip axes
- * (rotating a horizontal mirror by 90° is a vertical mirror). A resize box
- * turns with the image.
+ * (rotating a horizontal mirror by 90° is a vertical mirror). The crop and
+ * resize box turn with the image.
  */
 export function rotateGeometry(
   geometry: Geometry,
   direction: "clockwise" | "counterclockwise"
 ): Geometry {
-  const delta = direction === "clockwise" ? 90 : 270
-  const { resize } = geometry
+  const clockwise = direction === "clockwise"
+  const { crop, resize } = geometry
   return {
     ...geometry,
-    rotate: ((geometry.rotate + delta) % 360) as Rotation,
+    rotate: ((geometry.rotate + (clockwise ? 90 : 270)) % 360) as Rotation,
     flipHorizontal: geometry.flipVertical,
     flipVertical: geometry.flipHorizontal,
+    crop: crop && rotateRect(crop, clockwise),
     resize: resize && {
       ...resize,
       width: resize.height,
@@ -153,12 +256,14 @@ export function rotateGeometry(
   }
 }
 
-/** Mirrors what is currently shown along `axis`. */
+/** Mirrors what is currently shown along `axis`; the crop follows. */
 export function flipGeometry(
   geometry: Geometry,
   axis: "horizontal" | "vertical"
 ): Geometry {
-  return axis === "horizontal"
-    ? { ...geometry, flipHorizontal: !geometry.flipHorizontal }
-    : { ...geometry, flipVertical: !geometry.flipVertical }
+  const horizontal = axis === "horizontal"
+  const crop = geometry.crop && flipRect(geometry.crop, horizontal)
+  return horizontal
+    ? { ...geometry, crop, flipHorizontal: !geometry.flipHorizontal }
+    : { ...geometry, crop, flipVertical: !geometry.flipVertical }
 }

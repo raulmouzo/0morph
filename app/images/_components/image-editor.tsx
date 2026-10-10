@@ -11,20 +11,25 @@ import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { formatBytes } from "@/lib/image/format"
 import {
+  applyCrop,
   FORMATS,
+  framedSize,
   initialRecipe,
   isIdentityGeometry,
-  orientedSize,
+  type CropRect,
   type Encoding,
   type Geometry,
   type ImageRecipe,
 } from "@/lib/image/recipe"
 import { CompareView } from "./compare-view"
+import { CropControls, CropSummary } from "./crop-settings"
+import { CropView } from "./crop-view"
 import { ExportSettings } from "./export-settings"
 import { OutputSummary } from "./output-summary"
 import { PreviewFrame } from "./preview-frame"
 import { ResizeSettings } from "./resize-settings"
 import { TransformSettings } from "./transform-settings"
+import { useCropMode } from "./use-crop-mode"
 import { useEngineImage } from "./use-engine-image"
 import { useReference, useRender } from "./use-render"
 
@@ -117,25 +122,58 @@ function Editor({
       encoding: { ...current.encoding, ...changes },
     }))
 
-  const shown = output ?? (image.status === "ready" ? image.info : null)
+  const sourceSize = image.status === "ready" ? image.info : null
+  const setCrop = (crop: CropRect | null) => {
+    if (!sourceSize) return
+    setRecipe((current) => ({
+      ...current,
+      geometry: applyCrop(current.geometry, crop, sourceSize),
+    }))
+  }
+  const cropMode = useCropMode({
+    imageKey: key,
+    geometry: recipe.geometry,
+    source: sourceSize ?? { width: 1, height: 1 },
+    previewUrl,
+    onApply: setCrop,
+  })
+
+  const shown = cropMode.active ? cropMode.size : (output ?? sourceSize)
 
   return (
     <div className="flex w-full flex-col gap-6 md:flex-row md:items-start">
       <PreviewFrame
         width={shown?.width}
         height={shown?.height}
-        busy={image.status === "loading" || pending || reference.pending}
+        busy={
+          image.status === "loading" ||
+          (cropMode.active ? cropMode.pending : pending || reference.pending)
+        }
       >
-        <CompareView
-          before={identity ? previewUrl : (reference.output?.url ?? previewUrl)}
-          after={output?.url ?? previewUrl}
-          alt={file.name}
-          afterLabel={
-            output
-              ? `After · ${FORMATS[output.input.encoding.format].label}`
-              : "After"
-          }
-        />
+        {cropMode.active ? (
+          cropMode.src && (
+            <CropView
+              src={cropMode.src}
+              alt={`${file.name}, crop area`}
+              crop={cropMode.crop}
+              aspect={cropMode.aspect}
+              onChange={cropMode.setCrop}
+            />
+          )
+        ) : (
+          <CompareView
+            before={
+              identity ? previewUrl : (reference.output?.url ?? previewUrl)
+            }
+            after={output?.url ?? previewUrl}
+            alt={file.name}
+            afterLabel={
+              output
+                ? `After · ${FORMATS[output.input.encoding.format].label}`
+                : "After"
+            }
+          />
+        )}
       </PreviewFrame>
 
       <aside
@@ -169,15 +207,29 @@ function Editor({
           </p>
         )}
 
-        {image.status === "ready" && (
+        {image.status === "ready" && cropMode.active && (
+          <CropControls
+            aspect={cropMode.aspect}
+            onAspectChange={cropMode.setAspect}
+            onApply={cropMode.apply}
+            onCancel={cropMode.cancel}
+          />
+        )}
+
+        {image.status === "ready" && !cropMode.active && (
           <>
             <TransformSettings
               geometry={recipe.geometry}
               onChange={updateGeometry}
             />
+            <CropSummary
+              cropped={recipe.geometry.crop !== null}
+              onStart={cropMode.start}
+              onClear={() => setCrop(null)}
+            />
             <ResizeSettings
               geometry={recipe.geometry}
-              oriented={orientedSize(image.info, recipe.geometry)}
+              framed={framedSize(image.info, recipe.geometry)}
               onChange={updateGeometry}
             />
             <ExportSettings
