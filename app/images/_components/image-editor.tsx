@@ -50,6 +50,18 @@ import { useEngineImage } from "./use-engine-image"
 import { useReference, useRender } from "./use-render"
 import { WebPresetButton } from "./web-preset-button"
 
+// Recipes are compared by identity to know when to render again, so an
+// image without edits must get the same default recipe on every render.
+const defaultRecipes = new Map<string, ImageRecipe>()
+function defaultRecipe(mime: string) {
+  let recipe = defaultRecipes.get(mime)
+  if (!recipe) {
+    recipe = initialRecipe(mime)
+    defaultRecipes.set(mime, recipe)
+  }
+  return recipe
+}
+
 function Notice({ children }: { children: React.ReactNode }) {
   return (
     <Artboard className="mx-auto w-full max-w-4xl">
@@ -72,7 +84,11 @@ export function ImageEditor() {
   } = useAsset()
   const isolated = useCrossOriginIsolated()
   const router = useRouter()
-  const images = assets.filter((asset) => asset.file.type.startsWith("image/"))
+  // Stable while the assets don't change, like the batch jobs built on it.
+  const images = useMemo(
+    () => assets.filter((asset) => asset.file.type.startsWith("image/")),
+    [assets]
+  )
 
   // Ctrl/⌘+V adds the copied image to the batch, or starts one.
   usePasteImages((files) =>
@@ -153,7 +169,7 @@ function Editor({
   // Each image has its own recipe, starting from its own format.
   const [recipes, setRecipes] = useState<Record<string, ImageRecipe>>({})
   const recipeOf = (asset: Asset) =>
-    recipes[asset.id] ?? initialRecipe(asset.file.type)
+    recipes[asset.id] ?? defaultRecipe(asset.file.type)
   const recipe = recipeOf(selected)
   // An edit is applied to every selected image's own recipe, so it only
   // changes what was edited (e.g. the quality, not each image's format).
@@ -163,7 +179,7 @@ function Editor({
       for (const asset of assets) {
         if (!editing.has(asset.id)) continue
         next[asset.id] = update(
-          current[asset.id] ?? initialRecipe(asset.file.type)
+          current[asset.id] ?? defaultRecipe(asset.file.type)
         )
       }
       return next
@@ -172,7 +188,7 @@ function Editor({
     () =>
       assets.map((asset) => ({
         file: asset.file,
-        recipe: recipes[asset.id] ?? initialRecipe(asset.file.type),
+        recipe: recipes[asset.id] ?? defaultRecipe(asset.file.type),
       })),
     [assets, recipes]
   )
