@@ -1,4 +1,4 @@
-import { AssetWorkspace } from "../_components/asset-workspace"
+import { AssetWorkspace } from "../../_components/asset-workspace"
 
 export default function AudioPage() {
   return (

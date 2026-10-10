@@ -1,10 +1,8 @@
 import localFont from "next/font/local"
 import { Space_Mono } from "next/font/google"
-import { Suspense } from "react"
 
 import "./globals.css"
 import { AssetProvider } from "@/components/asset-provider"
-import { StatusBar } from "@/components/status-bar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -53,14 +51,9 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <AssetProvider>
-              <div className="mx-auto flex min-h-screen max-w-4xl flex-col">
-                <Suspense fallback={<div className="h-9 w-full" />}>
-                  <StatusBar />
-                </Suspense>
-                <div className="flex-1 px-4 sm:px-0">{children}</div>
-              </div>
-            </AssetProvider>
+            {/* The page frame (PageShell) comes from the (site) and images
+                layouts, and from not-found. */}
+            <AssetProvider>{children}</AssetProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>
