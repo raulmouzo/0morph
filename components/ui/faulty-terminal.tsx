@@ -229,11 +229,7 @@ function hexToRgb(hex: string): [number, number, number] {
       .join("")
   }
   const num = parseInt(h.slice(0, 6), 16)
-  return [
-    ((num >> 16) & 255) / 255,
-    ((num >> 8) & 255) / 255,
-    (num & 255) / 255,
-  ]
+  return [((num >> 16) & 255) / 255, ((num >> 8) & 255) / 255, (num & 255) / 255]
 }
 
 export interface FaultyTerminalProps extends HTMLAttributes<HTMLDivElement> {
