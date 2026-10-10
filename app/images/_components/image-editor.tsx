@@ -8,7 +8,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useId, useState } from "react"
+import { useId, useMemo, useState } from "react"
 
 import { Artboard } from "@/components/artboard"
 import { useAsset, type Asset } from "@/components/asset-provider"
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { useFullscreen } from "@/hooks/use-fullscreen"
 import { usePasteImages } from "@/hooks/use-paste-images"
+import type { BatchJob } from "@/lib/image/batch"
 import { formatBytes, sourceFormatLabel } from "@/lib/image/format"
 import {
   applyCrop,
@@ -29,6 +30,12 @@ import {
   type Geometry,
   type ImageRecipe,
 } from "@/lib/image/recipe"
+import {
+  pruneSelection,
+  select,
+  selectOne,
+  type SelectMode,
+} from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import { AssetStrip } from "./asset-strip"
 import { BatchExport } from "./batch-export"
@@ -56,6 +63,7 @@ export function ImageEditor() {
   const {
     assets,
     sessionId,
+    skipped,
     replaceAssets,
     addAssets,
     removeAsset,
@@ -104,6 +112,7 @@ export function ImageEditor() {
       // A new import starts a fresh editing session; adding images doesn't.
       key={sessionId}
       assets={images}
+      skipped={skipped}
       onAdd={addAssets}
       onRemove={removeAsset}
       onReset={() => {
@@ -116,24 +125,58 @@ export function ImageEditor() {
 
 function Editor({
   assets,
+  skipped,
   onAdd,
   onRemove,
   onReset,
 }: {
   assets: Asset[]
+  skipped: number
   onAdd: (files: File[]) => void
   onRemove: (id: string) => void
   onReset: () => void
 }) {
-  const [selectedId, setSelectedId] = useState(assets[0].id)
-  // Falls back to the first image when the selected one is removed.
-  const selected = assets.find((asset) => asset.id === selectedId) ?? assets[0]
+  const order = assets.map((asset) => asset.id)
+  // The images being edited; the active one is previewed. Removed images
+  // drop out of it.
+  const [rawSelection, setSelection] = useState(() => selectOne(order[0]))
+  const selection = pruneSelection(order, rawSelection)
+  const editing = new Set(selection.ids)
+  const onSelect = (id: string, mode: SelectMode) =>
+    setSelection(select(order, selection, id, mode))
+  const selected =
+    assets.find((asset) => asset.id === selection.active) ?? assets[0]
   const { file, previewUrl } = selected
 
   const image = useEngineImage(file)
-  // One recipe for every image; it starts from the first image's format.
-  const [recipe, setRecipe] = useState<ImageRecipe>(() =>
-    initialRecipe(assets[0].file.type)
+  // Each image has its own recipe, starting from its own format.
+  const [recipes, setRecipes] = useState<Record<string, ImageRecipe>>({})
+  const recipeOf = (asset: Asset) =>
+    recipes[asset.id] ?? initialRecipe(asset.file.type)
+  const recipe = recipeOf(selected)
+  // An edit is applied to every selected image's own recipe, so it only
+  // changes what was edited (e.g. the quality, not each image's format).
+  const setRecipe = (update: (current: ImageRecipe) => ImageRecipe) =>
+    setRecipes((current) => {
+      const next = { ...current }
+      for (const asset of assets) {
+        if (!editing.has(asset.id)) continue
+        next[asset.id] = update(
+          current[asset.id] ?? initialRecipe(asset.file.type)
+        )
+      }
+      return next
+    })
+  const jobs = useMemo<BatchJob[]>(
+    () =>
+      assets.map((asset) => ({
+        file: asset.file,
+        recipe: recipes[asset.id] ?? initialRecipe(asset.file.type),
+      })),
+    [assets, recipes]
+  )
+  const uniform = jobs.every(
+    (job) => JSON.stringify(job.recipe) === JSON.stringify(jobs[0].recipe)
   )
   const key = image.status === "ready" ? image.key : null
   const { output, pending, error } = useRender(key, recipe)
@@ -180,6 +223,7 @@ function Editor({
 
   const shown = cropMode.active ? cropMode.size : (output ?? sourceSize)
   const batch = assets.length > 1
+  const multiple = selection.ids.length > 1
 
   const fullscreen = useFullscreen()
   // Full screen hides the settings in a drawer on the right.
@@ -318,8 +362,18 @@ function Editor({
         {!cropMode.active && (
           <AssetStrip
             assets={assets}
-            selectedId={selected.id}
-            onSelect={setSelectedId}
+            skipped={skipped}
+            activeId={selected.id}
+            editing={editing}
+            onSelect={onSelect}
+            onSelectAll={() =>
+              setSelection({
+                ids: order,
+                anchor: selected.id,
+                active: selected.id,
+              })
+            }
+            onSelectOnly={() => setSelection(selectOne(selected.id))}
             onAdd={onAdd}
             onRemove={onRemove}
           />
@@ -371,6 +425,11 @@ function Editor({
             {image.status === "ready" &&
               ` · ${image.info.width} × ${image.info.height}`}
           </p>
+          {multiple && (
+            <p className="font-mono text-[0.65rem] text-primary uppercase">
+              Changes apply to {selection.ids.length} of {assets.length} images
+            </p>
+          )}
         </div>
 
         {image.status === "loading" && (
@@ -402,7 +461,7 @@ function Editor({
               info={image.info}
               crop={{
                 aspect: cropMode.aspect,
-                batch,
+                batch: multiple,
                 onAspectChange: cropMode.setAspect,
                 onApply: () => {
                   cropMode.apply()
@@ -427,7 +486,7 @@ function Editor({
                 error={error}
                 downloadLabel={batch ? "Download this image" : "Download"}
               >
-                {batch && <BatchExport assets={assets} recipe={recipe} />}
+                {batch && <BatchExport jobs={jobs} shared={uniform} />}
               </OutputSummary>
             )}
           </>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 
-import { uniqueNames } from "./batch"
+import { renderBatch, uniqueNames } from "./batch"
+import type { ImageEngine } from "./engine-client"
+import { initialRecipe, type ImageRecipe } from "./recipe"
 
 describe("uniqueNames", () => {
   it("numbers repeated names before the extension", () => {
@@ -19,5 +21,30 @@ describe("uniqueNames", () => {
       "a.png",
       "a (3).png",
     ])
+  })
+})
+
+describe("renderBatch", () => {
+  it("renders each file with its own recipe", async () => {
+    const rendered: ImageRecipe[] = []
+    const engine = {
+      call: async (command: string, params: { recipe?: ImageRecipe }) => {
+        if (command === "render") {
+          rendered.push(params.recipe!)
+          return { data: new ArrayBuffer(1), width: 1, height: 1 }
+        }
+        return null
+      },
+    } as unknown as ImageEngine
+    const png = initialRecipe("image/png")
+    const jpeg = initialRecipe("image/jpeg")
+
+    const results = await renderBatch(engine, [
+      { file: new File(["a"], "a.png", { type: "image/png" }), recipe: png },
+      { file: new File(["b"], "b.jpg", { type: "image/jpeg" }), recipe: jpeg },
+    ])
+
+    expect(rendered).toEqual([png, jpeg])
+    expect(results.map((result) => result.name)).toEqual(["a.png", "b.jpg"])
   })
 })

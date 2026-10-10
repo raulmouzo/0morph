@@ -2,12 +2,10 @@ import { downloadZip } from "client-zip"
 import { FolderDown, Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-import type { Asset } from "@/components/asset-provider"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { renderBatch } from "@/lib/image/batch"
+import { renderBatch, type BatchJob } from "@/lib/image/batch"
 import { getImageEngine } from "@/lib/image/engine-client"
 import { formatBytes, formatSizeChange } from "@/lib/image/format"
-import type { ImageRecipe } from "@/lib/image/recipe"
 import { cn } from "@/lib/utils"
 
 const ZIP_NAME = "0morph-images.zip"
@@ -17,8 +15,7 @@ type ExportState =
   | { status: "running"; done: number }
   | {
       status: "done"
-      assets: Asset[]
-      recipe: ImageRecipe
+      jobs: BatchJob[]
       url: string
       zipSize: number
       originalSize: number
@@ -34,13 +31,14 @@ function saveFile(url: string, name: string) {
   link.click()
 }
 
-/** Renders every image with the shared recipe and downloads them as a ZIP. */
+/** Renders every image with its recipe and downloads them as a ZIP. */
 export function BatchExport({
-  assets,
-  recipe,
+  jobs,
+  shared,
 }: {
-  assets: Asset[]
-  recipe: ImageRecipe
+  jobs: BatchJob[]
+  /** Whether every job uses the same settings (only changes the wording). */
+  shared: boolean
 }) {
   const [state, setState] = useState<ExportState>({ status: "idle" })
   const abortRef = useRef<AbortController>(null)
@@ -60,15 +58,10 @@ export function BatchExport({
     abortRef.current = controller
     setState({ status: "running", done: 0 })
     try {
-      const results = await renderBatch(
-        getImageEngine(),
-        assets.map((asset) => asset.file),
-        recipe,
-        {
-          signal: controller.signal,
-          onProgress: (done) => setState({ status: "running", done }),
-        }
-      )
+      const results = await renderBatch(getImageEngine(), jobs, {
+        signal: controller.signal,
+        onProgress: (done) => setState({ status: "running", done }),
+      })
       const rendered = results.filter((result) => result.ok)
       const zip = await downloadZip(
         rendered.map(({ name, data }) => ({ name, input: data }))
@@ -76,8 +69,7 @@ export function BatchExport({
       const zipUrl = URL.createObjectURL(zip)
       setState({
         status: "done",
-        assets,
-        recipe,
+        jobs,
         url: zipUrl,
         zipSize: zip.size,
         originalSize: rendered.reduce((sum, r) => sum + r.file.size, 0),
@@ -96,12 +88,7 @@ export function BatchExport({
   }
 
   // A finished export only describes the images and settings it used.
-  const current =
-    state.status === "done" &&
-    state.assets === assets &&
-    state.recipe === recipe
-      ? state
-      : null
+  const current = state.status === "done" && state.jobs === jobs ? state : null
 
   return (
     <>
@@ -111,19 +98,19 @@ export function BatchExport({
             role="progressbar"
             aria-label="Exporting images"
             aria-valuemin={0}
-            aria-valuemax={assets.length}
+            aria-valuemax={jobs.length}
             aria-valuenow={state.done}
             className="h-1 w-full overflow-hidden rounded-full bg-foreground/15"
           >
             <div
               className="h-full bg-primary transition-[width]"
-              style={{ width: `${(state.done / assets.length) * 100}%` }}
+              style={{ width: `${(state.done / jobs.length) * 100}%` }}
             />
           </div>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
               <Loader2 className="size-3 animate-spin" aria-hidden />
-              {state.done} / {assets.length}
+              {state.done} / {jobs.length}
             </span>
             <Button
               variant="ghost"
@@ -135,10 +122,15 @@ export function BatchExport({
           </div>
         </div>
       ) : (
-        <Button variant="outline" size="lg" className="w-full" onClick={run}>
-          <FolderDown aria-hidden />
-          Download all {assets.length} as ZIP
-        </Button>
+        <div className="flex flex-col gap-1">
+          <Button variant="outline" size="lg" className="w-full" onClick={run}>
+            <FolderDown aria-hidden />
+            Download all {jobs.length} as ZIP
+          </Button>
+          <p className="text-center font-mono text-[0.65rem] text-muted-foreground">
+            {shared ? "Same settings for all" : "Each with its own settings"}
+          </p>
+        </div>
       )}
 
       {current && (

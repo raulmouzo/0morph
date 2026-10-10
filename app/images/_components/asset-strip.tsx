@@ -1,47 +1,103 @@
-import { Plus, X } from "lucide-react"
+import { Check, Plus, X } from "lucide-react"
 
-import type { Asset } from "@/components/asset-provider"
+import { MAX_ASSETS, type Asset } from "@/components/asset-provider"
+import { Button } from "@/components/ui/button"
+import { selectModeOf, type SelectMode } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 
-/** Thumbnails of every loaded image: pick one to preview, add or remove. */
+/**
+ * Thumbnails of every loaded image: pick the ones to edit (Shift/Ctrl/⌘ +
+ * click for several), add or remove.
+ */
 export function AssetStrip({
   assets,
-  selectedId,
+  skipped,
+  activeId,
+  editing,
   onSelect,
+  onSelectAll,
+  onSelectOnly,
   onAdd,
   onRemove,
 }: {
   assets: Asset[]
-  selectedId: string
-  onSelect: (id: string) => void
+  /** Files just left out because of the limit. */
+  skipped: number
+  /** The previewed image. */
+  activeId: string
+  /** The images the settings apply to. */
+  editing: Set<string>
+  onSelect: (id: string, mode: SelectMode) => void
+  onSelectAll: () => void
+  /** Narrows the selection to the previewed image. */
+  onSelectOnly: () => void
   onAdd: (files: File[]) => void
   onRemove: (id: string) => void
 }) {
+  const full = assets.length >= MAX_ASSETS
+  const addLabel = full
+    ? `Limit of ${MAX_ASSETS} images reached`
+    : "Add images (or paste with Ctrl/⌘ + V)"
+
   return (
     <div className="flex flex-col gap-1">
       {assets.length > 1 && (
-        <p className="px-1 font-mono text-xs text-muted-foreground">
-          {assets.length} images · edits apply to all
+        <div className="flex items-center gap-3 px-1 font-mono text-xs text-muted-foreground">
+          <p>
+            {assets.length} / {MAX_ASSETS} images ·{" "}
+            <span
+              className={editing.size > 1 ? "text-primary" : "text-foreground"}
+            >
+              editing {editing.size === assets.length ? "all" : editing.size}
+            </span>
+          </p>
+          <span className="hidden sm:inline">
+            Shift / Ctrl / ⌘ + click to select several
+          </span>
+          <span className="ml-auto flex gap-1">
+            {editing.size < assets.length && (
+              <Button variant="ghost" size="sm" onClick={onSelectAll}>
+                Select all
+              </Button>
+            )}
+            {editing.size > 1 && (
+              <Button variant="ghost" size="sm" onClick={onSelectOnly}>
+                Only the previewed one
+              </Button>
+            )}
+          </span>
+        </div>
+      )}
+      {skipped > 0 && (
+        <p role="alert" className="px-1 font-mono text-xs text-destructive">
+          Up to {MAX_ASSETS} images at once · {skipped}{" "}
+          {skipped === 1 ? "was" : "were"} left out
         </p>
       )}
       <ul
         aria-label="Images"
-        className="flex gap-3 overflow-x-auto px-1 pt-2 pb-1"
+        // No text selection on Shift + click.
+        className="flex gap-3 overflow-x-auto px-1 pt-2 pb-1 select-none"
       >
         {assets.map((asset) => {
-          const selected = asset.id === selectedId
+          const active = asset.id === activeId
+          const selected = editing.has(asset.id)
           return (
             <li key={asset.id} className="relative shrink-0">
               <button
                 type="button"
-                aria-label={`Preview ${asset.file.name}`}
+                aria-label={`Edit ${asset.file.name}`}
                 aria-pressed={selected}
-                onClick={() => onSelect(asset.id)}
+                aria-current={active || undefined}
+                title="Shift + click or Ctrl/⌘ + click to select several"
+                onClick={(event) => onSelect(asset.id, selectModeOf(event))}
                 className={cn(
                   "block size-16 overflow-hidden rounded-md border-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                  selected
+                  active
                     ? "border-primary"
-                    : "border-transparent opacity-70 hover:opacity-100"
+                    : selected
+                      ? "border-primary/50"
+                      : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -59,18 +115,32 @@ export function AssetStrip({
               >
                 <X className="size-3" aria-hidden />
               </button>
+              {selected && editing.size > 1 && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute bottom-1 left-1 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                >
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+              )}
             </li>
           )
         })}
         <li className="shrink-0">
           <label
-            title="Add images (or paste with Ctrl/⌘ + V)"
-            className="flex size-16 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground transition-colors focus-within:ring-2 focus-within:ring-ring/50 hover:text-foreground"
+            title={addLabel}
+            className={cn(
+              "flex size-16 items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground transition-colors focus-within:ring-2 focus-within:ring-ring/50",
+              full
+                ? "cursor-not-allowed opacity-40"
+                : "cursor-pointer hover:text-foreground"
+            )}
           >
             <input
               type="file"
               accept="image/*"
               multiple
+              disabled={full}
               className="sr-only"
               onChange={(event) => {
                 const files = Array.from(event.target.files ?? []).filter(
@@ -81,9 +151,7 @@ export function AssetStrip({
               }}
             />
             <Plus className="size-5" aria-hidden />
-            <span className="sr-only">
-              Add images (or paste with Ctrl/⌘ + V)
-            </span>
+            <span className="sr-only">{addLabel}</span>
           </label>
         </li>
       </ul>

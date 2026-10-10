@@ -32,26 +32,30 @@ export function uniqueNames(names: string[]) {
   })
 }
 
+/** One image of a batch and the edits to render it with. */
+export type BatchJob = { file: File; recipe: ImageRecipe }
+
 /**
- * Renders every file with the same recipe, one after another, so only one
+ * Renders every file with its own recipe, one after another, so only one
  * image is decoded in the engine at a time. Failures are reported per file
  * instead of stopping the batch.
  */
 export async function renderBatch(
   engine: ImageEngine,
-  files: File[],
-  recipe: ImageRecipe,
+  jobs: BatchJob[],
   {
     signal,
     onProgress,
   }: { signal?: AbortSignal; onProgress?: (done: number) => void } = {}
 ): Promise<BatchResult[]> {
   const names = uniqueNames(
-    files.map((file) => outputFileName(file.name, recipe.encoding.format))
+    jobs.map(({ file, recipe }) =>
+      outputFileName(file.name, recipe.encoding.format)
+    )
   )
   const results: BatchResult[] = []
 
-  for (const [index, file] of files.entries()) {
+  for (const [index, { file, recipe }] of jobs.entries()) {
     signal?.throwIfAborted()
     const name = names[index]
     const key = crypto.randomUUID()
