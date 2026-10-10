@@ -10,7 +10,8 @@ import { useAsset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { formatBytes } from "@/lib/image/format"
-import { initialRecipe, type ImageRecipe } from "@/lib/image/recipe"
+import { FORMATS, initialRecipe, type ImageRecipe } from "@/lib/image/recipe"
+import { CompareView } from "./compare-view"
 import { ExportSettings } from "./export-settings"
 import { OutputSummary } from "./output-summary"
 import { PreviewFrame } from "./preview-frame"
@@ -103,11 +104,13 @@ function Editor({
         height={shown?.height}
         busy={image.status === "loading" || pending}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={output?.url ?? previewUrl}
+        <CompareView
+          before={previewUrl}
+          after={output?.url ?? previewUrl}
           alt={file.name}
-          className="block size-full object-contain"
+          afterLabel={
+            output ? `After · ${FORMATS[output.recipe.format].label}` : "After"
+          }
         />
       </PreviewFrame>
 
