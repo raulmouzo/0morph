@@ -1,5 +1,6 @@
 import { Maximize, Minimize, Minus, Plus } from "lucide-react"
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react"
+import { ReactCompareSlider } from "react-compare-slider"
 
 import { Artboard } from "@/components/artboard"
 import { Button } from "@/components/ui/button"
@@ -72,26 +73,35 @@ function localPoint(event: React.PointerEvent<HTMLElement>): Point {
 /** Overlay controls take their own clicks; they never start a drag. */
 const stopDrag = (event: React.PointerEvent) => event.stopPropagation()
 
+/** An image filling its artboard frame on the canvas. */
+export function CanvasImage({ src, alt }: { src: string; alt: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} className="block size-full" />
+}
+
 /**
  * Fixed-size canvas (with a dot grid) the image sits on. It has two layers:
  *
  * - Content: the artboard framing the image (`children`). It is fitted when
  *   the image or its size changes, then moves and scales with the view
- *   (drag, wheel, pinch, keyboard, zoom bar).
+ *   (drag, wheel, pinch, keyboard, zoom bar). With `before`, the content is
+ *   drawn twice, before and after, split by a divider that spans the whole
+ *   canvas: `before` shows on its left and `children` on its right.
  * - HUD: controls and information (`overlays` plus the zoom bar), fixed to
  *   the canvas edges whatever the zoom.
  */
 export function ImageCanvas({
-  content,
+  imageSize: content,
   resetKey,
   panFromContent,
   fullscreen,
   onToggleFullscreen,
   overlays = {},
+  before,
   children,
 }: {
   /** Size in pixels of the image shown, or null while unknown. */
-  content: Size | null
+  imageSize: Size | null
   /** Changing it fits the image again (e.g. another image is selected). */
   resetKey: string
   /** Whether dragging on the image pans; off while cropping. */
@@ -99,6 +109,9 @@ export function ImageCanvas({
   fullscreen: boolean
   onToggleFullscreen: () => void
   overlays?: CanvasOverlays
+  /** The "before" image; when given, the canvas shows a before/after split. */
+  before?: React.ReactNode
+  /** The image (the "after" side when comparing). */
   children: React.ReactNode
 }) {
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -209,6 +222,32 @@ export function ImageCanvas({
     if (pointers.current.size === 0) setDragging(false)
   }
 
+  /** The artboard with an image, placed and scaled by the view. */
+  function framed(image: React.ReactNode) {
+    if (!view || !content) return null
+    return (
+      <div
+        data-canvas-content
+        className={cn(
+          "absolute top-0 left-0",
+          // Past 100% show real pixels, to judge compression artifacts.
+          view.scale > 1 && "[&_img]:[image-rendering:pixelated]"
+        )}
+        style={{
+          width: Math.round(content.width * view.scale) + FRAME * 2,
+          height: Math.round(content.height * view.scale) + FRAME * 2,
+          transform: `translate(${Math.round(view.x) - FRAME}px, ${Math.round(view.y) - FRAME}px)`,
+        }}
+      >
+        <Artboard className="h-full">
+          <div className="size-full" style={{ padding: IMAGE_PADDING }}>
+            {image}
+          </div>
+        </Artboard>
+      </div>
+    )
+  }
+
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     // Only when the canvas itself has focus, not the comparison handle.
     if (event.target !== event.currentTarget) return
@@ -263,26 +302,20 @@ export function ImageCanvas({
       </p>
 
       {/* Content layer: moves and scales with the view. */}
-      {view && content && (
-        <div
-          data-canvas-content
-          className={cn(
-            "absolute top-0 left-0",
-            // Past 100% show real pixels, to judge compression artifacts.
-            view.scale > 1 && "[&_img]:[image-rendering:pixelated]"
-          )}
-          style={{
-            width: Math.round(content.width * view.scale) + FRAME * 2,
-            height: Math.round(content.height * view.scale) + FRAME * 2,
-            transform: `translate(${Math.round(view.x) - FRAME}px, ${Math.round(view.y) - FRAME}px)`,
-          }}
-        >
-          <Artboard className="h-full">
-            <div className="size-full" style={{ padding: IMAGE_PADDING }}>
-              {children}
-            </div>
-          </Artboard>
+      {before ? (
+        // The split covers the whole canvas, so the divider runs from top
+        // to bottom wherever the image is. Only its handle moves it;
+        // dragging anywhere else pans.
+        <div className="absolute inset-0">
+          <ReactCompareSlider
+            className="size-full"
+            onlyHandleDraggable
+            itemOne={framed(before)}
+            itemTwo={framed(children)}
+          />
         </div>
+      ) : (
+        framed(children)
       )}
 
       {/* HUD layer: fixed to the canvas; only its controls take clicks. */}

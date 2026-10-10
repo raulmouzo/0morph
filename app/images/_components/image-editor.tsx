@@ -31,10 +31,9 @@ import {
 import { cn } from "@/lib/utils"
 import { AssetStrip } from "./asset-strip"
 import { BatchExport } from "./batch-export"
-import { CompareView } from "./compare-view"
 import { CropView } from "./crop-view"
 import { OutputSummary } from "./output-summary"
-import { ImageCanvas, type CanvasOverlays } from "./image-canvas"
+import { CanvasImage, ImageCanvas, type CanvasOverlays } from "./image-canvas"
 import { ImageStats } from "./image-stats"
 import { SettingsAccordion, type SectionId } from "./settings-accordion"
 import { useCropMode } from "./use-crop-mode"
@@ -266,12 +265,24 @@ function Editor({
           }
         >
           <ImageCanvas
-            content={shown}
+            imageSize={shown}
             resetKey={`${selected.id}|${cropMode.active ? "crop" : "compare"}`}
             panFromContent={!cropMode.active}
             fullscreen={fullscreen.active}
             onToggleFullscreen={fullscreen.toggle}
             overlays={overlays}
+            before={
+              !cropMode.active && (
+                <CanvasImage
+                  src={
+                    identity
+                      ? previewUrl
+                      : (reference.output?.url ?? previewUrl)
+                  }
+                  alt={`${file.name}, before`}
+                />
+              )
+            }
           >
             {cropMode.active ? (
               cropMode.src && (
@@ -284,12 +295,9 @@ function Editor({
                 />
               )
             ) : (
-              <CompareView
-                before={
-                  identity ? previewUrl : (reference.output?.url ?? previewUrl)
-                }
-                after={output?.url ?? previewUrl}
-                alt={file.name}
+              <CanvasImage
+                src={output?.url ?? previewUrl}
+                alt={`${file.name}, after`}
               />
             )}
           </ImageCanvas>
