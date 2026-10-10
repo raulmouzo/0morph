@@ -4,6 +4,9 @@ import {
   applyCrop,
   cropPixels,
   IDENTITY_GEOMETRY,
+  initialRecipe,
+  isOptimizedForWeb,
+  optimizeForWeb,
   outputSize,
   rotateGeometry,
   type Geometry,
@@ -104,5 +107,32 @@ describe("applyCrop", () => {
 
     expect(next.resize).toEqual({ width: 800, height: 800, keepAspect: true })
     expect(outputSize(source, next)).toEqual({ width: 800, height: 800 })
+  })
+})
+
+describe("optimizeForWeb", () => {
+  it("switches to WebP 80, max 1920px, without metadata", () => {
+    const recipe = initialRecipe("image/png")
+    recipe.encoding.stripMetadata = false
+    const optimized = optimizeForWeb(recipe)
+
+    expect(optimized.encoding).toEqual({
+      format: "webp",
+      quality: 80,
+      stripMetadata: true,
+    })
+    expect(optimized.geometry.maxDimension).toBe(1920)
+    expect(isOptimizedForWeb(recipe)).toBe(false)
+    expect(isOptimizedForWeb(optimized)).toBe(true)
+  })
+
+  it("keeps other edits and a stricter max dimension", () => {
+    const recipe = initialRecipe("image/jpeg")
+    recipe.geometry = geometry({ rotate: 90, maxDimension: 1280 })
+    const optimized = optimizeForWeb(recipe)
+
+    expect(optimized.geometry).toEqual(
+      geometry({ rotate: 90, maxDimension: 1280 })
+    )
   })
 })

@@ -272,3 +272,44 @@ export function flipGeometry(
     ? { ...geometry, crop, flipHorizontal: !geometry.flipHorizontal }
     : { ...geometry, crop, flipVertical: !geometry.flipVertical }
 }
+
+/** "Optimize for web": WebP at quality 80, at most 1920px, no metadata. */
+export const WEB_PRESET = {
+  format: "webp",
+  quality: 80,
+  maxDimension: 1920,
+} as const satisfies Pick<Encoding, "format" | "quality"> & {
+  maxDimension: number
+}
+
+/**
+ * Applies the web preset on top of the current edits. Crop, rotation and
+ * resize are kept, and a stricter max dimension is never relaxed.
+ */
+export function optimizeForWeb(recipe: ImageRecipe): ImageRecipe {
+  const { maxDimension } = recipe.geometry
+  return {
+    geometry: {
+      ...recipe.geometry,
+      maxDimension: Math.min(
+        maxDimension ?? WEB_PRESET.maxDimension,
+        WEB_PRESET.maxDimension
+      ),
+    },
+    encoding: {
+      format: WEB_PRESET.format,
+      quality: WEB_PRESET.quality,
+      stripMetadata: true,
+    },
+  }
+}
+
+export function isOptimizedForWeb({ geometry, encoding }: ImageRecipe) {
+  return (
+    encoding.format === WEB_PRESET.format &&
+    encoding.quality === WEB_PRESET.quality &&
+    encoding.stripMetadata &&
+    geometry.maxDimension !== null &&
+    geometry.maxDimension <= WEB_PRESET.maxDimension
+  )
+}

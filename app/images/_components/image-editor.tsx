@@ -16,6 +16,8 @@ import {
   framedSize,
   initialRecipe,
   isIdentityGeometry,
+  isOptimizedForWeb,
+  optimizeForWeb,
   type CropRect,
   type Encoding,
   type Geometry,
@@ -32,6 +34,7 @@ import { TransformSettings } from "./transform-settings"
 import { useCropMode } from "./use-crop-mode"
 import { useEngineImage } from "./use-engine-image"
 import { useReference, useRender } from "./use-render"
+import { WebPresetButton } from "./web-preset-button"
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
@@ -218,6 +221,10 @@ function Editor({
 
         {image.status === "ready" && !cropMode.active && (
           <>
+            <WebPresetButton
+              active={isOptimizedForWeb(recipe)}
+              onApply={() => setRecipe(optimizeForWeb)}
+            />
             <TransformSettings
               geometry={recipe.geometry}
               onChange={updateGeometry}
