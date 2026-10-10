@@ -34,7 +34,8 @@ import { BatchExport } from "./batch-export"
 import { CompareView } from "./compare-view"
 import { CropView } from "./crop-view"
 import { OutputSummary } from "./output-summary"
-import { ImageCanvas } from "./image-canvas"
+import { ImageCanvas, type CanvasOverlays } from "./image-canvas"
+import { ImageStats } from "./image-stats"
 import { SettingsAccordion, type SectionId } from "./settings-accordion"
 import { useCropMode } from "./use-crop-mode"
 import { useEngineImage } from "./use-engine-image"
@@ -173,6 +174,71 @@ function Editor({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsId = useId()
 
+  const busy =
+    image.status === "loading" ||
+    (cropMode.active ? cropMode.pending : pending || reference.pending)
+
+  // The canvas HUD: navigation along the top, and the two sides of the
+  // comparison in the bottom corners (the zoom bar sits between them).
+  const overlays: CanvasOverlays = {
+    topLeft: (
+      <Button
+        variant="outline"
+        size="lg"
+        className="bg-background/85 backdrop-blur-sm"
+        onClick={() => {
+          fullscreen.exit()
+          onReset()
+        }}
+      >
+        <ArrowLeft aria-hidden />
+        Back
+      </Button>
+    ),
+    topCenter: busy && (
+      <span
+        role="status"
+        className="flex items-center gap-1.5 rounded-md border border-border bg-background/85 px-2 py-1 font-mono text-[0.65rem] text-foreground uppercase backdrop-blur-sm"
+      >
+        <Loader2 className="size-3 animate-spin" aria-hidden />
+        Rendering
+      </span>
+    ),
+    topRight: fullscreen.active && !settingsOpen && (
+      <Button
+        variant="outline"
+        size="lg"
+        className="bg-background/85 backdrop-blur-sm"
+        aria-controls={settingsId}
+        aria-expanded={false}
+        onClick={() => setSettingsOpen(true)}
+      >
+        <PanelRightOpen aria-hidden />
+        Settings
+      </Button>
+    ),
+    bottomLeft: !cropMode.active && sourceSize && (
+      <ImageStats
+        label="Before"
+        format={sourceFormatLabel(file)}
+        size={file.size}
+        width={sourceSize.width}
+        height={sourceSize.height}
+      />
+    ),
+    bottomRight: !cropMode.active && output && (
+      <ImageStats
+        label="After"
+        align="end"
+        format={FORMATS[output.input.encoding.format].label}
+        size={output.size}
+        width={output.width}
+        height={output.height}
+        originalSize={file.size}
+      />
+    ),
+  }
+
   return (
     <div
       className={cn(
@@ -193,12 +259,11 @@ function Editor({
       >
         {/* Same size whatever the image: the image moves and zooms inside. */}
         <div
-          className={cn(
-            "relative",
+          className={
             fullscreen.active
               ? "min-h-0 flex-1"
               : "h-[42svh] md:h-[calc(100svh-11rem)]"
-          )}
+          }
         >
           <ImageCanvas
             content={shown}
@@ -206,12 +271,7 @@ function Editor({
             panFromContent={!cropMode.active}
             fullscreen={fullscreen.active}
             onToggleFullscreen={fullscreen.toggle}
-            busy={
-              image.status === "loading" ||
-              (cropMode.active
-                ? cropMode.pending
-                : pending || reference.pending)
-            }
+            overlays={overlays}
           >
             {cropMode.active ? (
               cropMode.src && (
@@ -230,41 +290,9 @@ function Editor({
                 }
                 after={output?.url ?? previewUrl}
                 alt={file.name}
-                beforeLabel={`${sourceFormatLabel(file)} · ${formatBytes(file.size)}`}
-                afterLabel={
-                  output
-                    ? `${FORMATS[output.input.encoding.format].label} · ${formatBytes(output.size)}`
-                    : undefined
-                }
               />
             )}
           </ImageCanvas>
-
-          <Button
-            variant="outline"
-            size="lg"
-            className="absolute top-3 left-3 z-30 bg-background/85 backdrop-blur-sm"
-            onClick={() => {
-              fullscreen.exit()
-              onReset()
-            }}
-          >
-            <ArrowLeft aria-hidden />
-            Back
-          </Button>
-          {fullscreen.active && !settingsOpen && (
-            <Button
-              variant="outline"
-              size="lg"
-              className="absolute top-3 right-3 z-30 bg-background/85 backdrop-blur-sm"
-              aria-controls={settingsId}
-              aria-expanded={false}
-              onClick={() => setSettingsOpen(true)}
-            >
-              <PanelRightOpen aria-hidden />
-              Settings
-            </Button>
-          )}
         </div>
         {!cropMode.active && (
           <AssetStrip
