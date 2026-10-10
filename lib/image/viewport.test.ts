@@ -7,7 +7,10 @@ const content = { width: 1600, height: 800 }
 
 describe("fitView", () => {
   it("fits and centres large content", () => {
-    expect(fitView(canvas, content)).toEqual({ scale: 0.585, x: 32, y: 166 })
+    const view = fitView(canvas, content)
+    expect(view.scale).toBeCloseTo(0.575)
+    expect(view.x).toBeCloseTo(40)
+    expect(view.y).toBeCloseTo(170)
   })
 
   it("shows small content at 100%", () => {
@@ -37,7 +40,7 @@ describe("zoomAt", () => {
 
     expect(zoomAt(view, 1000, anchor, canvas, content).scale).toBe(MAX_SCALE)
     expect(zoomAt(view, 0.0001, anchor, canvas, content).scale).toBeCloseTo(
-      0.585 / 4
+      0.575 / 4
     )
   })
 })

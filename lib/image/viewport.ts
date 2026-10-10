@@ -10,9 +10,9 @@ export const MAX_SCALE = 16
 
 /**
  * Empty space kept around the content when fitting it. Taller above and
- * below so the canvas's floating controls don't cover the image.
+ * below, where the canvas's controls and image details float.
  */
-const FIT_PADDING = { x: 32, y: 56 }
+const FIT_PADDING = { x: 40, y: 80 }
 
 /** Part of the content that always stays inside the canvas when panning. */
 const VISIBLE_MARGIN = 48

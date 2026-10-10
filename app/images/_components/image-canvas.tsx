@@ -1,4 +1,4 @@
-import { Loader2, Maximize, Minimize, Minus, Plus, Scan } from "lucide-react"
+import { Maximize, Minimize, Minus, Plus } from "lucide-react"
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react"
 
 import { Artboard } from "@/components/artboard"
@@ -14,10 +14,44 @@ import {
 } from "@/lib/image/viewport"
 import { cn } from "@/lib/utils"
 
-/** Artboard border and padding around the image, in CSS pixels. */
-const FRAME = 4
+/** Space between the artboard's frame and the image, in CSS pixels. */
+const IMAGE_PADDING = 12
+/** The Artboard's own inner padding (its `p-1`). */
+const ARTBOARD_PADDING = 4
+/** Total distance from the artboard's outer edge to the image. */
+const FRAME = ARTBOARD_PADDING + IMAGE_PADDING
+
 const ZOOM_STEP = 1.25
 const PAN_STEP = 48
+
+export type OverlayPosition =
+  "topLeft" | "topCenter" | "topRight" | "bottomLeft" | "bottomRight"
+
+/** UI fixed to the canvas, by position. The bottom centre is the zoom bar. */
+export type CanvasOverlays = Partial<Record<OverlayPosition, React.ReactNode>>
+
+/**
+ * Cell of each overlay in the HUD grid: three columns (left, centre, right)
+ * and a top and bottom row. On narrow canvases the zoom bar moves to a row
+ * of its own below the bottom corners so they don't collide.
+ */
+const OVERLAY_CELL: Record<OverlayPosition | "bottomCenter", string> = {
+  topLeft: "col-start-1 row-start-1 self-start justify-self-start",
+  topCenter: "col-start-2 row-start-1 self-start justify-self-center",
+  topRight: "col-start-3 row-start-1 self-start justify-self-end",
+  bottomLeft: "col-start-1 row-start-3 self-end justify-self-start",
+  bottomCenter:
+    "col-start-2 row-start-3 self-end justify-self-center @max-2xl:col-span-3 @max-2xl:col-start-1 @max-2xl:row-start-4",
+  bottomRight: "col-start-3 row-start-3 self-end justify-self-end",
+}
+
+const OVERLAY_ORDER: OverlayPosition[] = [
+  "topLeft",
+  "topCenter",
+  "topRight",
+  "bottomLeft",
+  "bottomRight",
+]
 
 type Pinch = { distance: number; mid: Point }
 
@@ -35,29 +69,36 @@ function localPoint(event: React.PointerEvent<HTMLElement>): Point {
   return { x: event.clientX - rect.left, y: event.clientY - rect.top }
 }
 
+/** Overlay controls take their own clicks; they never start a drag. */
+const stopDrag = (event: React.PointerEvent) => event.stopPropagation()
+
 /**
- * Fixed-size canvas the image sits on, framed by the artboard. The image is
- * fitted when it (or its size) changes; it can then be dragged around and
- * zoomed with the wheel, a pinch, the toolbar or the keyboard.
+ * Fixed-size canvas (with a dot grid) the image sits on. It has two layers:
+ *
+ * - Content: the artboard framing the image (`children`). It is fitted when
+ *   the image or its size changes, then moves and scales with the view
+ *   (drag, wheel, pinch, keyboard, zoom bar).
+ * - HUD: controls and information (`overlays` plus the zoom bar), fixed to
+ *   the canvas edges whatever the zoom.
  */
 export function ImageCanvas({
   content,
   resetKey,
-  busy,
   panFromContent,
   fullscreen,
   onToggleFullscreen,
+  overlays = {},
   children,
 }: {
   /** Size in pixels of the image shown, or null while unknown. */
   content: Size | null
   /** Changing it fits the image again (e.g. another image is selected). */
   resetKey: string
-  busy: boolean
   /** Whether dragging on the image pans; off while cropping. */
   panFromContent: boolean
   fullscreen: boolean
   onToggleFullscreen: () => void
+  overlays?: CanvasOverlays
   children: React.ReactNode
 }) {
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -196,7 +237,7 @@ export function ImageCanvas({
       aria-describedby={hintId}
       tabIndex={0}
       className={cn(
-        "relative size-full touch-none overflow-hidden rounded-md border border-border bg-canvas outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "@container relative size-full touch-none overflow-hidden rounded-md border border-border bg-canvas outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50",
         dragging ? "cursor-grabbing" : "cursor-grab"
       )}
       style={{
@@ -221,6 +262,7 @@ export function ImageCanvas({
         0 fits it and 1 shows it at actual size.
       </p>
 
+      {/* Content layer: moves and scales with the view. */}
       {view && content && (
         <div
           data-canvas-content
@@ -235,75 +277,89 @@ export function ImageCanvas({
             transform: `translate(${Math.round(view.x) - FRAME}px, ${Math.round(view.y) - FRAME}px)`,
           }}
         >
-          <Artboard className="h-full">{children}</Artboard>
+          <Artboard className="h-full">
+            <div className="size-full" style={{ padding: IMAGE_PADDING }}>
+              {children}
+            </div>
+          </Artboard>
         </div>
       )}
 
-      {busy && (
-        <span
-          role="status"
-          className="pointer-events-none absolute top-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-sm bg-background/85 px-2 py-1 font-mono text-[0.65rem] text-foreground uppercase backdrop-blur-sm"
-        >
-          <Loader2 className="size-3 animate-spin" aria-hidden />
-          Rendering
-        </span>
-      )}
+      {/* HUD layer: fixed to the canvas; only its controls take clicks. */}
+      <div className="pointer-events-none absolute inset-0 z-20 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_1fr_auto] gap-2 p-3 @max-2xl:grid-rows-[auto_1fr_auto_auto]">
+        {OVERLAY_ORDER.map(
+          (position) =>
+            overlays[position] && (
+              <div
+                key={position}
+                className={cn("pointer-events-auto", OVERLAY_CELL[position])}
+                onPointerDown={stopDrag}
+              >
+                {overlays[position]}
+              </div>
+            )
+        )}
 
-      <div
-        className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-md border border-border bg-background/85 p-0.5 backdrop-blur-sm"
-        // Clicks on the toolbar must not start a drag.
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Zoom out"
-          disabled={!view}
-          onClick={() => zoomBy(1 / ZOOM_STEP)}
+        <div
+          role="toolbar"
+          aria-label="Zoom"
+          className={cn(
+            "pointer-events-auto flex items-center gap-0.5 rounded-md border border-border bg-background/85 p-0.5 backdrop-blur-sm",
+            OVERLAY_CELL.bottomCenter
+          )}
+          onPointerDown={stopDrag}
         >
-          <Minus aria-hidden />
-        </Button>
-        <span className="min-w-11 text-center font-mono text-xs text-foreground tabular-nums">
-          {Math.round((view?.scale ?? 1) * 100)}%
-        </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Zoom in"
-          disabled={!view}
-          onClick={() => zoomBy(ZOOM_STEP)}
-        >
-          <Plus aria-hidden />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="font-mono"
-          aria-label="Actual size"
-          disabled={!view}
-          onClick={actualSize}
-        >
-          1:1
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="font-mono"
-          aria-label="Fit to screen"
-          disabled={!view}
-          onClick={fit}
-        >
-          Fit
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={fullscreen ? "Exit full screen" : "Full screen"}
-          aria-pressed={fullscreen}
-          onClick={onToggleFullscreen}
-        >
-          {fullscreen ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Zoom out"
+            disabled={!view}
+            onClick={() => zoomBy(1 / ZOOM_STEP)}
+          >
+            <Minus aria-hidden />
+          </Button>
+          <span className="min-w-11 text-center font-mono text-xs text-foreground tabular-nums">
+            {Math.round((view?.scale ?? 1) * 100)}%
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Zoom in"
+            disabled={!view}
+            onClick={() => zoomBy(ZOOM_STEP)}
+          >
+            <Plus aria-hidden />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-mono"
+            aria-label="Actual size"
+            disabled={!view}
+            onClick={actualSize}
+          >
+            1:1
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-mono"
+            aria-label="Fit to screen"
+            disabled={!view}
+            onClick={fit}
+          >
+            Fit
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+            aria-pressed={fullscreen}
+            onClick={onToggleFullscreen}
+          >
+            {fullscreen ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
+          </Button>
+        </div>
       </div>
     </div>
   )
