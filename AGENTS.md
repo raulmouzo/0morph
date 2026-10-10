@@ -49,5 +49,8 @@ isolated if only that route had them. Anything embedded from another origin
   at runtime, not bundled.
 - The UI lives in `app/images/_components/`; shared primitives (slider,
   accordion, etc.) are in `components/ui/`, built on Base UI.
+- Page frames come from `components/page-shell.tsx`: the site's pages live
+  in the `(site)` route group (narrow column) and `/images` has its own wide
+  layout.
 - `pnpm test` runs Vitest; pipeline tests use the Node build of wasm-vips
   with the images in `public/samples/`.
