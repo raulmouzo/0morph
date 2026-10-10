@@ -13,7 +13,6 @@ import {
   type Encoding,
   type OutputFormat,
 } from "@/lib/image/recipe"
-import { SettingsSection } from "./settings-section"
 
 function metadataSummary({ hasExif, hasIcc }: ImageInfo) {
   if (hasExif && hasIcc)
@@ -36,7 +35,7 @@ export function ExportSettings({
   const lossy = FORMATS[encoding.format].lossy
 
   return (
-    <SettingsSection title="Export">
+    <>
       <SegmentedControl<OutputFormat>
         aria-label="Output format"
         value={encoding.format}
@@ -75,7 +74,7 @@ export function ExportSettings({
           onCheckedChange={(stripMetadata) => onChange({ stripMetadata })}
         />
       </label>
-    </SettingsSection>
+    </>
   )
 }
 

@@ -21,24 +21,26 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function OutputSummary({
-  title,
   sourceName,
   sourceSize,
   output,
   pending,
   error,
+  downloadLabel = "Download",
+  children,
 }: {
-  title: string
   sourceName: string
   sourceSize: number
   output: Rendered<ImageRecipe> | null
   pending: boolean
   error: string | null
+  downloadLabel?: string
+  /** Extra actions below the download button (e.g. the batch export). */
+  children?: React.ReactNode
 }) {
   return (
-    <SettingsSection title={title}>
+    <SettingsSection title="Result">
       <dl className="flex flex-col gap-1 font-mono text-xs" aria-live="polite">
-        <Row label="Original" value={formatBytes(sourceSize)} />
         <Row
           label="Output"
           value={
@@ -84,14 +86,15 @@ export function OutputSummary({
           className={cn(buttonVariants({ size: "lg" }), "w-full")}
         >
           <Download aria-hidden />
-          Download
+          {downloadLabel}
         </a>
       ) : (
         <Button size="lg" className="w-full" disabled>
           <Download aria-hidden />
-          Download
+          {downloadLabel}
         </Button>
       )}
+      {children}
     </SettingsSection>
   )
 }

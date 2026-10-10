@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Loader2, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -8,12 +8,16 @@ import { useState } from "react"
 import { Artboard } from "@/components/artboard"
 import { useAsset, type Asset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { formatBytes } from "@/lib/image/format"
 import {
   applyCrop,
   FORMATS,
-  framedSize,
   initialRecipe,
   isIdentityGeometry,
   isOptimizedForWeb,
@@ -26,13 +30,10 @@ import {
 import { AssetStrip } from "./asset-strip"
 import { BatchExport } from "./batch-export"
 import { CompareView } from "./compare-view"
-import { CropControls, CropSummary } from "./crop-settings"
 import { CropView } from "./crop-view"
-import { ExportSettings } from "./export-settings"
 import { OutputSummary } from "./output-summary"
 import { PreviewFrame } from "./preview-frame"
-import { ResizeSettings } from "./resize-settings"
-import { TransformSettings } from "./transform-settings"
+import { SettingsAccordion, type SectionId } from "./settings-accordion"
 import { useCropMode } from "./use-crop-mode"
 import { useEngineImage } from "./use-engine-image"
 import { useReference, useRender } from "./use-render"
@@ -153,11 +154,23 @@ function Editor({
     onApply: setCrop,
   })
 
+  // Crop mode is tied to the Crop section: opening it starts cropping and
+  // leaving it (for another section, or closing it) discards the draft.
+  const [openSection, setOpenSection] = useState<SectionId | null>("export")
+  const changeSection = (next: SectionId | null) => {
+    if (openSection === "crop" && next !== "crop") cropMode.cancel()
+    if (next === "crop" && openSection !== "crop") cropMode.start()
+    setOpenSection(next)
+  }
+
   const shown = cropMode.active ? cropMode.size : (output ?? sourceSize)
+  const batch = assets.length > 1
 
   return (
-    <div className="flex w-full flex-col gap-6 md:flex-row md:items-start">
-      <div className="flex min-w-0 flex-1 flex-col gap-4 md:sticky md:top-6">
+    <div className="flex w-full flex-col gap-4 md:flex-row md:items-start md:gap-6">
+      {/* Sticky on every screen size so the image stays in view while the
+          settings are used; on phones it sits above the scrolling panel. */}
+      <div className="sticky top-0 z-10 flex min-w-0 flex-1 flex-col gap-3 bg-background py-2 [--preview-max-h:38svh] md:top-4 md:py-0 md:[--preview-max-h:calc(100svh-12rem)]">
         <PreviewFrame
           width={shown?.width}
           height={shown?.height}
@@ -204,12 +217,29 @@ function Editor({
 
       <aside
         aria-label="Image settings"
-        className="flex w-full shrink-0 flex-col gap-6 rounded-md border border-border bg-card p-4 md:w-64"
+        className="flex w-full shrink-0 flex-col gap-3 rounded-md border border-border bg-card p-4 md:sticky md:top-4 md:max-h-[calc(100svh-4.5rem)] md:w-68 md:overflow-y-auto"
       >
         <div className="flex flex-col gap-1">
-          <p className="font-heading text-lg font-bold break-all text-foreground">
-            {file.name}
-          </p>
+          <div className="flex items-start gap-2">
+            <p className="flex-1 font-heading text-base font-bold break-all text-foreground">
+              {file.name}
+            </p>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Start over"
+                    onClick={onReset}
+                  />
+                }
+              >
+                <X aria-hidden />
+              </TooltipTrigger>
+              <TooltipContent>Start over</TooltipContent>
+            </Tooltip>
+          </div>
           <p className="font-mono text-xs text-muted-foreground">
             {formatBytes(file.size)}
             {image.status === "ready" &&
@@ -233,57 +263,49 @@ function Editor({
           </p>
         )}
 
-        {image.status === "ready" && cropMode.active && (
-          <CropControls
-            aspect={cropMode.aspect}
-            onAspectChange={cropMode.setAspect}
-            onApply={cropMode.apply}
-            onCancel={cropMode.cancel}
-          />
-        )}
-
-        {image.status === "ready" && !cropMode.active && (
+        {image.status === "ready" && (
           <>
             <WebPresetButton
               active={isOptimizedForWeb(recipe)}
               onApply={() => setRecipe(optimizeForWeb)}
             />
-            <TransformSettings
-              geometry={recipe.geometry}
-              onChange={updateGeometry}
-            />
-            <CropSummary
-              cropped={recipe.geometry.crop !== null}
-              onStart={cropMode.start}
-              onClear={() => setCrop(null)}
-            />
-            <ResizeSettings
-              geometry={recipe.geometry}
-              framed={framedSize(image.info, recipe.geometry)}
-              onChange={updateGeometry}
-            />
-            <ExportSettings
-              encoding={recipe.encoding}
+            <SettingsAccordion
+              open={openSection}
+              onOpenChange={changeSection}
+              recipe={recipe}
               info={image.info}
-              onChange={updateEncoding}
+              crop={{
+                aspect: cropMode.aspect,
+                batch,
+                onAspectChange: cropMode.setAspect,
+                onApply: () => {
+                  cropMode.apply()
+                  setOpenSection(null)
+                },
+                onCancel: () => changeSection(null),
+                onRemove: () => {
+                  setCrop(null)
+                  changeSection(null)
+                },
+              }}
+              onGeometryChange={updateGeometry}
+              onEncodingChange={updateEncoding}
             />
-            <OutputSummary
-              title={assets.length > 1 ? "This image" : "Result"}
-              sourceName={file.name}
-              sourceSize={file.size}
-              output={output}
-              pending={pending}
-              error={error}
-            />
-            {assets.length > 1 && (
-              <BatchExport assets={assets} recipe={recipe} />
+            {/* The result describes the applied edits, not a crop draft. */}
+            {!cropMode.active && (
+              <OutputSummary
+                sourceName={file.name}
+                sourceSize={file.size}
+                output={output}
+                pending={pending}
+                error={error}
+                downloadLabel={batch ? "Download this image" : "Download"}
+              >
+                {batch && <BatchExport assets={assets} recipe={recipe} />}
+              </OutputSummary>
             )}
           </>
         )}
-
-        <Button variant="ghost" size="sm" onClick={onReset}>
-          Start over
-        </Button>
       </aside>
     </div>
   )

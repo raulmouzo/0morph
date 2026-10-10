@@ -9,7 +9,6 @@ import { getImageEngine } from "@/lib/image/engine-client"
 import { formatBytes, formatSizeChange } from "@/lib/image/format"
 import type { ImageRecipe } from "@/lib/image/recipe"
 import { cn } from "@/lib/utils"
-import { SettingsSection } from "./settings-section"
 
 const ZIP_NAME = "0morph-images.zip"
 
@@ -105,12 +104,7 @@ export function BatchExport({
       : null
 
   return (
-    <SettingsSection title={`All images · ${assets.length}`}>
-      <p className="text-xs text-muted-foreground">
-        The same edits apply to every image. A crop covers the same area, in
-        percent, of each one.
-      </p>
-
+    <>
       {state.status === "running" ? (
         <div className="flex flex-col gap-2">
           <div
@@ -143,7 +137,7 @@ export function BatchExport({
       ) : (
         <Button variant="outline" size="lg" className="w-full" onClick={run}>
           <FolderDown aria-hidden />
-          Download all as ZIP
+          Download all {assets.length} as ZIP
         </Button>
       )}
 
@@ -190,6 +184,6 @@ export function BatchExport({
           Export failed · {state.message}
         </p>
       )}
-    </SettingsSection>
+    </>
   )
 }

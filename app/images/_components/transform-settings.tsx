@@ -13,7 +13,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { flipGeometry, rotateGeometry, type Geometry } from "@/lib/image/recipe"
-import { SettingsSection } from "./settings-section"
 
 function ToolButton({
   label,
@@ -54,34 +53,29 @@ export function TransformSettings({
   onChange: (geometry: Geometry) => void
 }) {
   return (
-    <SettingsSection title="Transform">
-      <div className="flex items-center gap-2">
-        <ToolButton
-          label="Rotate left"
-          icon={RotateCcw}
-          onClick={() => onChange(rotateGeometry(geometry, "counterclockwise"))}
-        />
-        <ToolButton
-          label="Rotate right"
-          icon={RotateCw}
-          onClick={() => onChange(rotateGeometry(geometry, "clockwise"))}
-        />
-        <ToolButton
-          label="Flip horizontally"
-          icon={FlipHorizontal2}
-          pressed={geometry.flipHorizontal}
-          onClick={() => onChange(flipGeometry(geometry, "horizontal"))}
-        />
-        <ToolButton
-          label="Flip vertically"
-          icon={FlipVertical2}
-          pressed={geometry.flipVertical}
-          onClick={() => onChange(flipGeometry(geometry, "vertical"))}
-        />
-        <span className="ml-auto font-mono text-xs text-muted-foreground">
-          {geometry.rotate}°
-        </span>
-      </div>
-    </SettingsSection>
+    <div className="flex items-center gap-2">
+      <ToolButton
+        label="Rotate left"
+        icon={RotateCcw}
+        onClick={() => onChange(rotateGeometry(geometry, "counterclockwise"))}
+      />
+      <ToolButton
+        label="Rotate right"
+        icon={RotateCw}
+        onClick={() => onChange(rotateGeometry(geometry, "clockwise"))}
+      />
+      <ToolButton
+        label="Flip horizontally"
+        icon={FlipHorizontal2}
+        pressed={geometry.flipHorizontal}
+        onClick={() => onChange(flipGeometry(geometry, "horizontal"))}
+      />
+      <ToolButton
+        label="Flip vertically"
+        icon={FlipVertical2}
+        pressed={geometry.flipVertical}
+        onClick={() => onChange(flipGeometry(geometry, "vertical"))}
+      />
+    </div>
   )
 }

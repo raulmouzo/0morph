@@ -8,7 +8,7 @@ const DEFAULT_ASPECT = { width: 4, height: 3 }
 /**
  * Artboard that takes the aspect ratio of the image it shows, so the image
  * fills the frame. It grows to the available width and caps its height at
- * 70% of the viewport.
+ * --preview-max-h (70% of the viewport by default).
  */
 export function PreviewFrame({
   width = DEFAULT_ASPECT.width,
@@ -27,7 +27,8 @@ export function PreviewFrame({
         className="relative"
         style={{
           aspectRatio: `${width} / ${height}`,
-          width: `min(100%, calc(70vh * ${width} / ${height}))`,
+          // --preview-max-h is set by the editor layout (shorter on phones).
+          width: `min(100%, calc(var(--preview-max-h, 70vh) * ${width} / ${height}))`,
         }}
       >
         <Artboard className="h-full">{children}</Artboard>

@@ -13,7 +13,6 @@ import {
   type Geometry,
   type Size,
 } from "@/lib/image/recipe"
-import { SettingsSection } from "./settings-section"
 
 const NO_LIMIT = "none"
 
@@ -75,7 +74,7 @@ export function ResizeSettings({
   }
 
   return (
-    <SettingsSection title="Resize">
+    <>
       <div className="flex items-end gap-2">
         <NumberInput
           label="Width"
@@ -146,6 +145,6 @@ export function ResizeSettings({
           ))}
         </SegmentedControl>
       </div>
-    </SettingsSection>
+    </>
   )
 }
