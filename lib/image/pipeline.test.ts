@@ -24,7 +24,7 @@ const recipe = (
   geometry: Partial<Geometry> = {}
 ): ImageRecipe => ({
   geometry: { ...IDENTITY_GEOMETRY, ...geometry },
-  encoding: { format: "webp", quality: 80, ...encoding },
+  encoding: { format: "webp", quality: 80, stripMetadata: true, ...encoding },
 })
 
 describe("openSource", () => {
@@ -121,6 +121,54 @@ describe("render", () => {
     source.delete()
 
     expect([output.width, output.height]).toEqual([800, 1600])
+  })
+})
+
+describe("metadata", () => {
+  // A JPEG with an EXIF tag and a Display P3 profile; orange in sRGB.
+  async function photoWithMetadata() {
+    const vips = await loadVips()
+    const srgb = vips.Image.black(16, 16, { bands: 3 })
+      .add([200, 100, 50])
+      .cast("uchar")
+      .copy({ interpretation: "srgb" })
+    const p3 = srgb.iccTransform("p3", { input_profile: "srgb" })
+    p3.setString("exif-ifd0-Artist", "Someone")
+    const jpeg = p3.jpegsaveBuffer({ Q: 95 })
+    srgb.delete()
+    p3.delete()
+    return openSource(vips, jpeg)
+  }
+
+  it.each(OUTPUT_FORMATS)(
+    "strips EXIF and ICC from %s, converting to sRGB",
+    async (format) => {
+      const vips = await loadVips()
+      const source = await photoWithMetadata()
+      expect(readInfo(source)).toMatchObject({ hasExif: true, hasIcc: true })
+
+      const output = render(source, recipe({ format, quality: 100 }))
+      const decoded = vips.Image.newFromBuffer(output.data)
+
+      expect(readInfo(decoded)).toMatchObject({ hasExif: false, hasIcc: false })
+      const [r, g, b] = decoded.getpoint(8, 8)
+      expect(Math.abs(r - 200)).toBeLessThanOrEqual(6)
+      expect(Math.abs(g - 100)).toBeLessThanOrEqual(6)
+      expect(Math.abs(b - 50)).toBeLessThanOrEqual(6)
+      decoded.delete()
+      source.delete()
+    }
+  )
+
+  it("keeps metadata when asked to", async () => {
+    const vips = await loadVips()
+    const source = await photoWithMetadata()
+    const output = render(source, recipe({ stripMetadata: false }))
+    const decoded = vips.Image.newFromBuffer(output.data)
+
+    expect(readInfo(decoded)).toMatchObject({ hasExif: true, hasIcc: true })
+    decoded.delete()
+    source.delete()
   })
 })
 

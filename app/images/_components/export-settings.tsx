@@ -5,6 +5,8 @@ import {
   SegmentedControlItem,
 } from "@/components/ui/segmented-control"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import type { ImageInfo } from "@/lib/image/pipeline"
 import {
   FORMATS,
   OUTPUT_FORMATS,
@@ -13,11 +15,22 @@ import {
 } from "@/lib/image/recipe"
 import { SettingsSection } from "./settings-section"
 
+function metadataSummary({ hasExif, hasIcc }: ImageInfo) {
+  if (hasExif && hasIcc)
+    return "Has EXIF (camera, maybe GPS) and a colour profile."
+  if (hasExif) return "Has EXIF data (camera, maybe GPS location)."
+  if (hasIcc)
+    return "Has a colour profile; colours are kept by converting to sRGB."
+  return "No EXIF or colour profile found."
+}
+
 export function ExportSettings({
   encoding,
+  info,
   onChange,
 }: {
   encoding: Encoding
+  info: ImageInfo
   onChange: (changes: Partial<Encoding>) => void
 }) {
   const lossy = FORMATS[encoding.format].lossy
@@ -47,6 +60,21 @@ export function ExportSettings({
           apply.
         </p>
       )}
+
+      <label className="flex cursor-pointer items-start justify-between gap-3">
+        <span className="flex flex-col gap-0.5">
+          <span className="font-mono text-xs text-muted-foreground uppercase">
+            Remove metadata
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {metadataSummary(info)}
+          </span>
+        </span>
+        <Switch
+          checked={encoding.stripMetadata}
+          onCheckedChange={(stripMetadata) => onChange({ stripMetadata })}
+        />
+      </label>
     </SettingsSection>
   )
 }

@@ -234,6 +234,7 @@ function Editor({
             />
             <ExportSettings
               encoding={recipe.encoding}
+              info={image.info}
               onChange={updateEncoding}
             />
             <OutputSummary

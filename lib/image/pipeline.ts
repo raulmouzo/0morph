@@ -109,7 +109,11 @@ function applyGeometry(source: Vips.Image, geometry: Geometry, own: Own) {
   return resizeTo(image, resizedSize(image, geometry), own)
 }
 
-function encode(image: Vips.Image, { format, quality }: Encoding) {
+function encode(
+  image: Vips.Image,
+  { format, quality, stripMetadata }: Encoding
+) {
+  const keep = stripMetadata ? "none" : "all"
   switch (format) {
     case "jpeg":
       // mozjpeg tuning, the same set sharp enables with `mozjpeg: true`.
@@ -121,16 +125,18 @@ function encode(image: Vips.Image, { format, quality }: Encoding) {
         overshoot_deringing: true,
         optimize_scans: true,
         quant_table: 3,
+        keep,
       })
     case "png":
-      return image.pngsaveBuffer({ compression: 9 })
+      return image.pngsaveBuffer({ compression: 9, keep })
     case "webp":
-      return image.webpsaveBuffer({ Q: quality })
+      return image.webpsaveBuffer({ Q: quality, keep })
     case "avif":
       return image.heifsaveBuffer({
         Q: quality,
         compression: "av1",
         effort: AVIF_EFFORT,
+        keep,
       })
   }
 }
@@ -139,6 +145,11 @@ function encode(image: Vips.Image, { format, quality }: Encoding) {
 export function render(source: Vips.Image, recipe: ImageRecipe): RenderResult {
   return withOwned((own) => {
     let image = applyGeometry(source, recipe.geometry, own)
+    if (recipe.encoding.stripMetadata && hasIcc(image)) {
+      // Without its profile the image would be read as sRGB, which shifts
+      // the colours of wide-gamut (e.g. Display P3) photos. Convert first.
+      image = own(image.iccTransform("srgb", { embedded: true }))
+    }
     if (recipe.encoding.format === "jpeg" && image.hasAlpha()) {
       image = own(image.flatten({ background: JPEG_BACKGROUND }))
     }
@@ -169,12 +180,16 @@ export function renderReference(
   })
 }
 
+function hasIcc(image: Vips.Image) {
+  return image.getTypeof("icc-profile-data") !== 0
+}
+
 export function readInfo(image: Vips.Image): ImageInfo {
   return {
     width: image.width,
     height: image.height,
     hasAlpha: image.hasAlpha(),
-    hasIcc: image.getTypeof("icc-profile-data") !== 0,
+    hasIcc: hasIcc(image),
     hasExif: image.getTypeof("exif-data") !== 0,
   }
 }

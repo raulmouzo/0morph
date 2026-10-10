@@ -64,6 +64,11 @@ export type Encoding = {
   format: OutputFormat
   /** 1–100. Ignored by lossless formats. */
   quality: number
+  /**
+   * Drops EXIF (camera, GPS location), XMP, IPTC and the ICC profile.
+   * Colours are converted to sRGB first so they still look the same.
+   */
+  stripMetadata: boolean
 }
 
 /**
@@ -92,7 +97,7 @@ export function initialRecipe(sourceMime: string): ImageRecipe {
     OUTPUT_FORMATS.find((id) => FORMATS[id].mime === sourceMime) ?? "webp"
   return {
     geometry: IDENTITY_GEOMETRY,
-    encoding: { format, quality: DEFAULT_QUALITY },
+    encoding: { format, quality: DEFAULT_QUALITY, stripMetadata: true },
   }
 }
 
