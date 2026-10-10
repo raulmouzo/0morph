@@ -14,37 +14,41 @@ function extensionOf(name: string) {
 
 export function ImportDropzone() {
   const router = useRouter()
-  const { setAsset } = useAsset()
+  const { replaceAssets } = useAsset()
   const [detectedExt, setDetectedExt] = useState<string | null>(null)
   const [unsupported, setUnsupported] = useState<string | null>(null)
   const unsupportedTimeout = useRef<ReturnType<typeof setTimeout>>(null)
 
-  function handleFile(file: File) {
-    const category = detectCategory(file)
+  function handleFiles(files: File[]) {
+    if (files.length === 0) return
+    // The first supported file decides the tool; files of other kinds are
+    // left out.
+    const category = files.map(detectCategory).find((found) => found)
 
     if (!category) {
-      setUnsupported(file.name)
+      setUnsupported(files[0].name)
       if (unsupportedTimeout.current) clearTimeout(unsupportedTimeout.current)
       unsupportedTimeout.current = setTimeout(() => setUnsupported(null), 2500)
       return
     }
 
+    const supported = files.filter(
+      (file) => detectCategory(file)?.id === category.id
+    )
     setUnsupported(null)
-    setDetectedExt(extensionOf(file.name))
-    setAsset(file)
+    setDetectedExt(extensionOf(supported[0].name))
+    replaceAssets(supported)
     setTimeout(() => router.push(category.href), 350)
   }
 
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) handleFile(file)
+    handleFiles(Array.from(e.target.files ?? []))
     e.target.value = ""
   }
 
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleFile(file)
+    handleFiles(Array.from(e.dataTransfer.files ?? []))
   }
 
   const watermark = (detectedExt ?? "ANY").slice(0, 4)
@@ -67,6 +71,7 @@ export function ImportDropzone() {
           <input
             type="file"
             accept="image/*"
+            multiple
             onChange={onInputChange}
             className="sr-only"
           />
@@ -75,10 +80,10 @@ export function ImportDropzone() {
 
         <div className="flex flex-col items-center gap-3">
           <h2 className="font-heading text-2xl font-bold text-foreground uppercase sm:text-4xl">
-            Import an image
+            Import images
           </h2>
           <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
-            Drop an image file. Nothing ever leaves your browser.
+            Drop one or more image files. Nothing ever leaves your browser.
           </p>
           {unsupported && (
             <p className="font-mono text-xs text-destructive uppercase">

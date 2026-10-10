@@ -21,12 +21,14 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function OutputSummary({
+  title,
   sourceName,
   sourceSize,
   output,
   pending,
   error,
 }: {
+  title: string
   sourceName: string
   sourceSize: number
   output: Rendered<ImageRecipe> | null
@@ -34,7 +36,7 @@ export function OutputSummary({
   error: string | null
 }) {
   return (
-    <SettingsSection title="Result">
+    <SettingsSection title={title}>
       <dl className="flex flex-col gap-1 font-mono text-xs" aria-live="polite">
         <Row label="Original" value={formatBytes(sourceSize)} />
         <Row

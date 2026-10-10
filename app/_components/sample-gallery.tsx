@@ -48,7 +48,7 @@ const SAMPLES: Sample[] = [
 ]
 
 export function SampleGallery({ className }: { className?: string }) {
-  const { setAsset } = useAsset()
+  const { replaceAssets } = useAsset()
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
@@ -59,7 +59,7 @@ export function SampleGallery({ className }: { className?: string }) {
       const res = await fetch(sample.src)
       const blob = await res.blob()
       const file = new File([blob], sample.filename, { type: sample.mime })
-      setAsset(file)
+      replaceAssets([file])
       router.push("/images")
     } finally {
       setLoadingId(null)

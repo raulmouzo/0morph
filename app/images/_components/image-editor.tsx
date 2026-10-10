@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { Artboard } from "@/components/artboard"
-import { useAsset } from "@/components/asset-provider"
+import { useAsset, type Asset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { formatBytes } from "@/lib/image/format"
@@ -23,6 +23,8 @@ import {
   type Geometry,
   type ImageRecipe,
 } from "@/lib/image/recipe"
+import { AssetStrip } from "./asset-strip"
+import { BatchExport } from "./batch-export"
 import { CompareView } from "./compare-view"
 import { CropControls, CropSummary } from "./crop-settings"
 import { CropView } from "./crop-view"
@@ -47,11 +49,12 @@ function Notice({ children }: { children: React.ReactNode }) {
 }
 
 export function ImageEditor() {
-  const { file, previewUrl, clearAsset } = useAsset()
+  const { assets, sessionId, addAssets, removeAsset, clearAssets } = useAsset()
   const isolated = useCrossOriginIsolated()
   const router = useRouter()
+  const images = assets.filter((asset) => asset.file.type.startsWith("image/"))
 
-  if (!file || !previewUrl || !file.type.startsWith("image/")) {
+  if (images.length === 0) {
     return (
       <Notice>
         <p className="text-sm text-muted-foreground">No image loaded yet.</p>
@@ -82,12 +85,13 @@ export function ImageEditor() {
 
   return (
     <Editor
-      // A new file starts a fresh editing session.
-      key={previewUrl}
-      file={file}
-      previewUrl={previewUrl}
+      // A new import starts a fresh editing session; adding images doesn't.
+      key={sessionId}
+      assets={images}
+      onAdd={addAssets}
+      onRemove={removeAsset}
       onReset={() => {
-        clearAsset()
+        clearAssets()
         router.push("/")
       }}
     />
@@ -95,17 +99,25 @@ export function ImageEditor() {
 }
 
 function Editor({
-  file,
-  previewUrl,
+  assets,
+  onAdd,
+  onRemove,
   onReset,
 }: {
-  file: File
-  previewUrl: string
+  assets: Asset[]
+  onAdd: (files: File[]) => void
+  onRemove: (id: string) => void
   onReset: () => void
 }) {
+  const [selectedId, setSelectedId] = useState(assets[0].id)
+  // Falls back to the first image when the selected one is removed.
+  const selected = assets.find((asset) => asset.id === selectedId) ?? assets[0]
+  const { file, previewUrl } = selected
+
   const image = useEngineImage(file)
+  // One recipe for every image; it starts from the first image's format.
   const [recipe, setRecipe] = useState<ImageRecipe>(() =>
-    initialRecipe(file.type)
+    initialRecipe(assets[0].file.type)
   )
   const key = image.status === "ready" ? image.key : null
   const { output, pending, error } = useRender(key, recipe)
@@ -145,39 +157,50 @@ function Editor({
 
   return (
     <div className="flex w-full flex-col gap-6 md:flex-row md:items-start">
-      <PreviewFrame
-        width={shown?.width}
-        height={shown?.height}
-        busy={
-          image.status === "loading" ||
-          (cropMode.active ? cropMode.pending : pending || reference.pending)
-        }
-      >
-        {cropMode.active ? (
-          cropMode.src && (
-            <CropView
-              src={cropMode.src}
-              alt={`${file.name}, crop area`}
-              crop={cropMode.crop}
-              aspect={cropMode.aspect}
-              onChange={cropMode.setCrop}
+      <div className="flex min-w-0 flex-1 flex-col gap-4 md:sticky md:top-6">
+        <PreviewFrame
+          width={shown?.width}
+          height={shown?.height}
+          busy={
+            image.status === "loading" ||
+            (cropMode.active ? cropMode.pending : pending || reference.pending)
+          }
+        >
+          {cropMode.active ? (
+            cropMode.src && (
+              <CropView
+                src={cropMode.src}
+                alt={`${file.name}, crop area`}
+                crop={cropMode.crop}
+                aspect={cropMode.aspect}
+                onChange={cropMode.setCrop}
+              />
+            )
+          ) : (
+            <CompareView
+              before={
+                identity ? previewUrl : (reference.output?.url ?? previewUrl)
+              }
+              after={output?.url ?? previewUrl}
+              alt={file.name}
+              afterLabel={
+                output
+                  ? `After · ${FORMATS[output.input.encoding.format].label}`
+                  : "After"
+              }
             />
-          )
-        ) : (
-          <CompareView
-            before={
-              identity ? previewUrl : (reference.output?.url ?? previewUrl)
-            }
-            after={output?.url ?? previewUrl}
-            alt={file.name}
-            afterLabel={
-              output
-                ? `After · ${FORMATS[output.input.encoding.format].label}`
-                : "After"
-            }
+          )}
+        </PreviewFrame>
+        {!cropMode.active && (
+          <AssetStrip
+            assets={assets}
+            selectedId={selected.id}
+            onSelect={setSelectedId}
+            onAdd={onAdd}
+            onRemove={onRemove}
           />
         )}
-      </PreviewFrame>
+      </div>
 
       <aside
         aria-label="Image settings"
@@ -245,17 +268,21 @@ function Editor({
               onChange={updateEncoding}
             />
             <OutputSummary
+              title={assets.length > 1 ? "This image" : "Result"}
               sourceName={file.name}
               sourceSize={file.size}
               output={output}
               pending={pending}
               error={error}
             />
+            {assets.length > 1 && (
+              <BatchExport assets={assets} recipe={recipe} />
+            )}
           </>
         )}
 
         <Button variant="ghost" size="sm" onClick={onReset}>
-          Import a different file
+          Start over
         </Button>
       </aside>
     </div>
