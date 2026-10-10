@@ -1,20 +1,21 @@
 "use client"
 
-import { Loader2, X } from "lucide-react"
+import {
+  ArrowLeft,
+  Loader2,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useId, useState } from "react"
 
 import { Artboard } from "@/components/artboard"
 import { useAsset, type Asset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
-import { formatBytes } from "@/lib/image/format"
+import { useFullscreen } from "@/hooks/use-fullscreen"
+import { formatBytes, sourceFormatLabel } from "@/lib/image/format"
 import {
   applyCrop,
   FORMATS,
@@ -27,12 +28,13 @@ import {
   type Geometry,
   type ImageRecipe,
 } from "@/lib/image/recipe"
+import { cn } from "@/lib/utils"
 import { AssetStrip } from "./asset-strip"
 import { BatchExport } from "./batch-export"
 import { CompareView } from "./compare-view"
 import { CropView } from "./crop-view"
 import { OutputSummary } from "./output-summary"
-import { PreviewFrame } from "./preview-frame"
+import { ImageCanvas } from "./image-canvas"
 import { SettingsAccordion, type SectionId } from "./settings-accordion"
 import { useCropMode } from "./use-crop-mode"
 import { useEngineImage } from "./use-engine-image"
@@ -166,44 +168,104 @@ function Editor({
   const shown = cropMode.active ? cropMode.size : (output ?? sourceSize)
   const batch = assets.length > 1
 
+  const fullscreen = useFullscreen()
+  // Full screen hides the settings in a drawer on the right.
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsId = useId()
+
   return (
-    <div className="flex w-full flex-col gap-4 md:flex-row md:items-start md:gap-6">
-      {/* Sticky on every screen size so the image stays in view while the
-          settings are used; on phones it sits above the scrolling panel. */}
-      <div className="sticky top-0 z-10 flex min-w-0 flex-1 flex-col gap-3 bg-background py-2 [--preview-max-h:38svh] md:top-4 md:py-0 md:[--preview-max-h:calc(100svh-12rem)]">
-        <PreviewFrame
-          width={shown?.width}
-          height={shown?.height}
-          busy={
-            image.status === "loading" ||
-            (cropMode.active ? cropMode.pending : pending || reference.pending)
-          }
-        >
-          {cropMode.active ? (
-            cropMode.src && (
-              <CropView
-                src={cropMode.src}
-                alt={`${file.name}, crop area`}
-                crop={cropMode.crop}
-                aspect={cropMode.aspect}
-                onChange={cropMode.setCrop}
-              />
-            )
-          ) : (
-            <CompareView
-              before={
-                identity ? previewUrl : (reference.output?.url ?? previewUrl)
-              }
-              after={output?.url ?? previewUrl}
-              alt={file.name}
-              afterLabel={
-                output
-                  ? `After · ${FORMATS[output.input.encoding.format].label}`
-                  : "After"
-              }
-            />
+    <div
+      className={cn(
+        fullscreen.active
+          ? "fixed inset-0 z-50 flex overflow-hidden bg-background p-3"
+          : "flex w-full flex-col gap-4 md:flex-row md:items-start md:gap-6"
+      )}
+    >
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col gap-3",
+          fullscreen.active
+            ? "min-h-0"
+            : // Sticky so the image stays in view while the settings are
+              // used; on phones it sits above the scrolling panel.
+              "sticky top-0 z-10 bg-background py-2 md:top-4 md:py-0"
+        )}
+      >
+        {/* Same size whatever the image: the image moves and zooms inside. */}
+        <div
+          className={cn(
+            "relative",
+            fullscreen.active
+              ? "min-h-0 flex-1"
+              : "h-[42svh] md:h-[calc(100svh-11rem)]"
           )}
-        </PreviewFrame>
+        >
+          <ImageCanvas
+            content={shown}
+            resetKey={`${selected.id}|${cropMode.active ? "crop" : "compare"}`}
+            panFromContent={!cropMode.active}
+            fullscreen={fullscreen.active}
+            onToggleFullscreen={fullscreen.toggle}
+            busy={
+              image.status === "loading" ||
+              (cropMode.active
+                ? cropMode.pending
+                : pending || reference.pending)
+            }
+          >
+            {cropMode.active ? (
+              cropMode.src && (
+                <CropView
+                  src={cropMode.src}
+                  alt={`${file.name}, crop area`}
+                  crop={cropMode.crop}
+                  aspect={cropMode.aspect}
+                  onChange={cropMode.setCrop}
+                />
+              )
+            ) : (
+              <CompareView
+                before={
+                  identity ? previewUrl : (reference.output?.url ?? previewUrl)
+                }
+                after={output?.url ?? previewUrl}
+                alt={file.name}
+                beforeLabel={`${sourceFormatLabel(file)} · ${formatBytes(file.size)}`}
+                afterLabel={
+                  output
+                    ? `${FORMATS[output.input.encoding.format].label} · ${formatBytes(output.size)}`
+                    : undefined
+                }
+              />
+            )}
+          </ImageCanvas>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="absolute top-3 left-3 z-30 bg-background/85 backdrop-blur-sm"
+            onClick={() => {
+              fullscreen.exit()
+              onReset()
+            }}
+          >
+            <ArrowLeft aria-hidden />
+            Back
+          </Button>
+          {fullscreen.active && !settingsOpen && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="absolute top-3 right-3 z-30 bg-background/85 backdrop-blur-sm"
+              aria-controls={settingsId}
+              aria-expanded={false}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <PanelRightOpen aria-hidden />
+              Settings
+            </Button>
+          )}
+        </div>
         {!cropMode.active && (
           <AssetStrip
             assets={assets}
@@ -216,29 +278,44 @@ function Editor({
       </div>
 
       <aside
+        id={settingsId}
         aria-label="Image settings"
-        className="flex w-full shrink-0 flex-col gap-3 rounded-md border border-border bg-card p-4 md:sticky md:top-4 md:max-h-[calc(100svh-4.5rem)] md:w-68 md:overflow-y-auto"
+        // In full screen the panel is a drawer; while hidden it must not be
+        // reachable with the keyboard.
+        inert={fullscreen.active && !settingsOpen}
+        className={cn(
+          "flex shrink-0 flex-col gap-3 rounded-md border border-border bg-card p-4",
+          fullscreen.active
+            ? cn(
+                "absolute top-3 right-3 bottom-3 z-40 w-68 overflow-y-auto shadow-xl transition-transform duration-200",
+                settingsOpen
+                  ? "translate-x-0"
+                  : "translate-x-[calc(100%+1.5rem)]"
+              )
+            : "w-full md:sticky md:top-4 md:max-h-[calc(100svh-4.5rem)] md:w-68 md:overflow-y-auto"
+        )}
       >
         <div className="flex flex-col gap-1">
-          <div className="flex items-start gap-2">
-            <p className="flex-1 font-heading text-base font-bold break-all text-foreground">
+          <div className="flex items-center gap-2">
+            {/* Secondary info: one short line, full name on hover. */}
+            <p
+              className="min-w-0 flex-1 truncate font-mono text-xs text-foreground"
+              title={file.name}
+            >
               {file.name}
             </p>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Start over"
-                    onClick={onReset}
-                  />
-                }
+            {fullscreen.active && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Hide settings"
+                aria-controls={settingsId}
+                aria-expanded
+                onClick={() => setSettingsOpen(false)}
               >
-                <X aria-hidden />
-              </TooltipTrigger>
-              <TooltipContent>Start over</TooltipContent>
-            </Tooltip>
+                <PanelRightClose aria-hidden />
+              </Button>
+            )}
           </div>
           <p className="font-mono text-xs text-muted-foreground">
             {formatBytes(file.size)}
