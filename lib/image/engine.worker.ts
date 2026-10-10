@@ -6,7 +6,7 @@ import type {
   EngineRequest,
   EngineResponse,
 } from "./engine-protocol"
-import { openSource, readInfo, type VipsInstance } from "./pipeline"
+import { openSource, readInfo, render, type VipsInstance } from "./pipeline"
 
 // Served from public/ (see scripts/copy-wasm-vips.mjs) and loaded at runtime,
 // so the bundler leaves wasm-vips and its .wasm files untouched.
@@ -32,12 +32,30 @@ function getSource(key: string) {
   return source
 }
 
+/** An ArrayBuffer holding exactly `bytes`, so it can be transferred. */
+function ownBuffer(bytes: Uint8Array): ArrayBuffer {
+  const { buffer, byteOffset, byteLength } = bytes
+  if (
+    buffer instanceof ArrayBuffer &&
+    byteOffset === 0 &&
+    byteLength === buffer.byteLength
+  ) {
+    return buffer
+  }
+  return bytes.slice().buffer
+}
+
 const handlers: Handlers = {
   open(vips, { key, data }) {
     sources.get(key)?.delete()
     const source = openSource(vips, data)
     sources.set(key, source)
     return { result: readInfo(source) }
+  },
+  render(_vips, { key, recipe }) {
+    const { data, width, height } = render(getSource(key), recipe)
+    const buffer = ownBuffer(data)
+    return { result: { data: buffer, width, height }, transfer: [buffer] }
   },
   close(_vips, { key }) {
     sources.get(key)?.delete()
