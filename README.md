@@ -44,3 +44,4 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | `pnpm lint`      | Lint the codebase        |
 | `pnpm format`    | Format the codebase      |
 | `pnpm typecheck` | Type-check the codebase  |
+| `pnpm test`      | Run the unit tests       |

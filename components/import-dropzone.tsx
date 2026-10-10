@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 
 import { useAsset } from "@/components/asset-provider"
+import { usePasteImages } from "@/hooks/use-paste-images"
 import { detectCategory } from "@/lib/categories"
 
 function extensionOf(name: string) {
@@ -14,37 +15,43 @@ function extensionOf(name: string) {
 
 export function ImportDropzone() {
   const router = useRouter()
-  const { setAsset } = useAsset()
+  const { replaceAssets } = useAsset()
   const [detectedExt, setDetectedExt] = useState<string | null>(null)
   const [unsupported, setUnsupported] = useState<string | null>(null)
   const unsupportedTimeout = useRef<ReturnType<typeof setTimeout>>(null)
 
-  function handleFile(file: File) {
-    const category = detectCategory(file)
+  function handleFiles(files: File[]) {
+    if (files.length === 0) return
+    // The first supported file decides the tool; files of other kinds are
+    // left out.
+    const category = files.map(detectCategory).find((found) => found)
 
     if (!category) {
-      setUnsupported(file.name)
+      setUnsupported(files[0].name)
       if (unsupportedTimeout.current) clearTimeout(unsupportedTimeout.current)
       unsupportedTimeout.current = setTimeout(() => setUnsupported(null), 2500)
       return
     }
 
+    const supported = files.filter(
+      (file) => detectCategory(file)?.id === category.id
+    )
     setUnsupported(null)
-    setDetectedExt(extensionOf(file.name))
-    setAsset(file)
+    setDetectedExt(extensionOf(supported[0].name))
+    replaceAssets(supported)
     setTimeout(() => router.push(category.href), 350)
   }
 
+  usePasteImages(handleFiles)
+
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) handleFile(file)
+    handleFiles(Array.from(e.target.files ?? []))
     e.target.value = ""
   }
 
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleFile(file)
+    handleFiles(Array.from(e.dataTransfer.files ?? []))
   }
 
   const watermark = (detectedExt ?? "ANY").slice(0, 4)
@@ -53,7 +60,7 @@ export function ImportDropzone() {
     <div
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
-      className="flex w-full flex-col gap-10 overflow-hidden px-6 py-24 sm:px-12 sm:py-20"
+      className="flex w-full flex-col gap-10 overflow-hidden px-6 py-14 sm:px-12 sm:py-12"
     >
       <span
         aria-hidden
@@ -62,23 +69,25 @@ export function ImportDropzone() {
         {watermark}
       </span>
 
-      <div className="flex flex-col items-center gap-6 text-center">
-        <label className="flex size-20 cursor-pointer items-center justify-center border-2 border-foreground transition-colors hover:bg-foreground/5 sm:size-24">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <label className="flex size-20 cursor-pointer items-center justify-center border-2 border-foreground transition-colors hover:bg-foreground/5">
           <input
             type="file"
             accept="image/*"
+            multiple
             onChange={onInputChange}
             className="sr-only"
           />
-          <Plus className="size-8 text-foreground sm:size-10" />
+          <Plus className="size-8 text-foreground" />
         </label>
 
         <div className="flex flex-col items-center gap-3">
-          <h2 className="font-heading text-2xl font-bold text-foreground uppercase sm:text-4xl">
-            Import an image
+          <h2 className="font-heading text-2xl font-bold text-foreground uppercase sm:text-3xl">
+            Import images
           </h2>
           <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
-            Drop an image file. Nothing ever leaves your browser.
+            Drop or paste (Ctrl/⌘ + V) one or more images. Nothing ever leaves
+            your browser.
           </p>
           {unsupported && (
             <p className="font-mono text-xs text-destructive uppercase">

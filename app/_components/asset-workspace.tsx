@@ -13,7 +13,9 @@ function formatSize(bytes: number) {
 }
 
 export function AssetWorkspace({ categoryId }: { categoryId: Category["id"] }) {
-  const { file, previewUrl, clearAsset } = useAsset()
+  const { assets, clearAssets } = useAsset()
+  const file = assets[0]?.file
+  const previewUrl = assets[0]?.previewUrl
   const router = useRouter()
   const category = getCategory(categoryId)
 
@@ -77,7 +79,7 @@ export function AssetWorkspace({ categoryId }: { categoryId: Category["id"] }) {
           variant="ghost"
           size="sm"
           onClick={() => {
-            clearAsset()
+            clearAssets()
             router.push("/")
           }}
         >
