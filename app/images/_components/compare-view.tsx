@@ -7,10 +7,13 @@ import { cn } from "@/lib/utils"
 
 function Label({
   side,
-  children,
+  title,
+  detail,
 }: {
   side: "left" | "right"
-  children: React.ReactNode
+  title: string
+  /** Format and size; hidden when the image is too narrow for both labels. */
+  detail?: string
 }) {
   return (
     <span
@@ -20,34 +23,41 @@ function Label({
         side === "left" ? "left-3" : "right-3"
       )}
     >
-      {children}
+      {title}
+      {detail && <span className="hidden @md:inline"> · {detail}</span>}
     </span>
   )
 }
 
-/** Draggable before/after split between the original and the output. */
+/**
+ * Before/after split between the original and the output. Only the handle
+ * moves the divider, so dragging the image pans the canvas instead.
+ */
 export function CompareView({
   before,
   after,
   alt,
+  beforeLabel,
   afterLabel,
 }: {
   before: string
   after: string
   alt: string
-  afterLabel: string
+  beforeLabel: string
+  afterLabel?: string
 }) {
   return (
-    <div className="relative size-full">
+    <div className="@container relative size-full">
       <ReactCompareSlider
         className="size-full"
+        onlyHandleDraggable
         itemOne={
           <ReactCompareSliderImage src={before} alt={`${alt}, before`} />
         }
         itemTwo={<ReactCompareSliderImage src={after} alt={`${alt}, after`} />}
       />
-      <Label side="left">Before</Label>
-      <Label side="right">{afterLabel}</Label>
+      <Label side="left" title="Before" detail={beforeLabel} />
+      <Label side="right" title="After" detail={afterLabel} />
     </div>
   )
 }

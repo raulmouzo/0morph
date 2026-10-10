@@ -25,11 +25,32 @@ Target capabilities:
 
 **Engine:** [`wasm-vips`](https://github.com/kleisauke/wasm-vips), the
 WebAssembly port of libvips (the library sharp wraps). It supports all of
-the formats and operations above (`extract_area` for crop, `resize`/
-`thumbnail`, `rotate`, `flip`, per-format quality options, `strip` metadata
-on save) with no server involved.
+the formats and operations above (`extract_area` for crop, `resize`, `rot`,
+`flip`, per-format quality options, and the `keep` save option to drop
+metadata; `strip` no longer exists in libvips 8.15+) with no server involved.
 
-**Constraint:** wasm-vips's threaded build needs `SharedArrayBuffer`, which
-requires the page to be cross-origin isolated (`Cross-Origin-Opener-Policy:
-same-origin` + `Cross-Origin-Embedder-Policy: require-corp`). These headers
-are scoped to the `/images` route only, not site-wide.
+**Constraint:** wasm-vips only ships a threaded build, which needs
+`SharedArrayBuffer`, so pages must be cross-origin isolated
+(`Cross-Origin-Opener-Policy: same-origin` +
+`Cross-Origin-Embedder-Policy: require-corp`, set in `next.config.ts`).
+These headers are **site-wide**: browsers only read them on a full document
+load, so client-side navigations into `/images` would never become
+isolated if only that route had them. Anything embedded from another origin
+(images, iframes, scripts) must send CORP/CORS headers.
+
+## Implementation
+
+- `lib/image/` holds the framework-agnostic logic: the edit recipe
+  (`recipe.ts`), the libvips pipeline (`pipeline.ts`), and the worker
+  (`engine.worker.ts`) with its typed protocol and main-thread client.
+- wasm-vips runs in a dedicated Web Worker. Its browser build is copied from
+  `node_modules` to `public/vendor/wasm-vips/` by
+  `scripts/copy-wasm-vips.mjs` (run by `pnpm dev`/`pnpm build`) and loaded
+  at runtime, not bundled.
+- The UI lives in `app/images/_components/`; shared primitives (slider,
+  accordion, etc.) are in `components/ui/`, built on Base UI.
+- Page frames come from `components/page-shell.tsx`: the site's pages live
+  in the `(site)` route group (narrow column) and `/images` has its own wide
+  layout.
+- `pnpm test` runs Vitest; pipeline tests use the Node build of wasm-vips
+  with the images in `public/samples/`.

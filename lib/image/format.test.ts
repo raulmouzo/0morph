@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { formatBytes, formatSizeChange, outputFileName } from "./format"
+import {
+  formatBytes,
+  formatSizeChange,
+  outputFileName,
+  sourceFormatLabel,
+} from "./format"
 
 describe("formatBytes", () => {
   it.each([
@@ -35,5 +40,18 @@ describe("outputFileName", () => {
     [".hidden", "png", ".hidden.png"],
   ] as const)("%s as %s is %s", (name, format, expected) => {
     expect(outputFileName(name, format)).toBe(expected)
+  })
+})
+
+describe("sourceFormatLabel", () => {
+  it.each([
+    ["image/png", "a.png", "PNG"],
+    ["image/jpeg", "a.jpg", "JPEG"],
+    ["image/svg+xml", "a.svg", "SVG"],
+    ["image/x-icon", "a.ico", "ICON"],
+    ["", "photo.heic", "HEIC"],
+    ["", "no-extension", "Original"],
+  ])("%s / %s is %s", (type, name, expected) => {
+    expect(sourceFormatLabel({ type, name })).toBe(expected)
   })
 })

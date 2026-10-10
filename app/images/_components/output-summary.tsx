@@ -41,8 +41,9 @@ export function OutputSummary({
   return (
     <SettingsSection title="Result">
       <dl className="flex flex-col gap-1 font-mono text-xs" aria-live="polite">
+        <Row label="Before" value={formatBytes(sourceSize)} />
         <Row
-          label="Output"
+          label="After"
           value={
             output ? (
               <>

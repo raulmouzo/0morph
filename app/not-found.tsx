@@ -1,13 +1,16 @@
 import Image from "next/image"
 
 import { NotFoundGrid } from "./_components/not-found-grid"
+import { PageShell } from "@/components/page-shell"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { MoveLeft } from "lucide-react"
 
 export default function NotFoundPage() {
+  // Rendered by the root layout, outside the route groups, so it adds the
+  // page frame itself.
   return (
-    <>
+    <PageShell>
       <div className="pointer-events-none fixed inset-x-0 top-9 bottom-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 -left-3 animate-in slide-in-from-top-40 fill-mode-both transition-all duration-1500 sm:-top-40 sm:-left-5 md:-top-20 lg:left-20 xl:left-40">
           <div className="animate-float">
@@ -76,6 +79,6 @@ export default function NotFoundPage() {
           </div>
         </div>
       </div>
-    </>
+    </PageShell>
   )
 }

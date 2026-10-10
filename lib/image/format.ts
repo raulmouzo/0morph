@@ -1,4 +1,4 @@
-import { FORMATS, type OutputFormat } from "./recipe"
+import { FORMATS, OUTPUT_FORMATS, type OutputFormat } from "./recipe"
 
 const UNITS = ["B", "KB", "MB", "GB"] as const
 
@@ -34,4 +34,14 @@ export function outputFileName(sourceName: string, format: OutputFormat) {
   const dot = sourceName.lastIndexOf(".")
   const base = dot > 0 ? sourceName.slice(0, dot) : sourceName
   return `${base}.${FORMATS[format].extension}`
+}
+
+/** Short name of a file's format, e.g. "PNG", from its MIME type or name. */
+export function sourceFormatLabel(file: { type: string; name: string }) {
+  const known = OUTPUT_FORMATS.find((id) => FORMATS[id].mime === file.type)
+  if (known) return FORMATS[known].label
+  const subtype = file.type.split("/")[1]?.replace(/^x-/, "").split("+")[0]
+  if (subtype) return subtype.toUpperCase()
+  const dot = file.name.lastIndexOf(".")
+  return dot > 0 ? file.name.slice(dot + 1).toUpperCase() : "Original"
 }

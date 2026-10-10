@@ -1,7 +1,7 @@
 import { Artboard } from "@/components/artboard"
 import { ImportDropzone } from "@/components/import-dropzone"
-import Hero from "./_components/hero"
-import { SampleGallery } from "./_components/sample-gallery"
+import Hero from "../_components/hero"
+import { SampleGallery } from "../_components/sample-gallery"
 
 export default function Page() {
   return (
