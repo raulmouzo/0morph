@@ -15,6 +15,7 @@ import { useAsset, type Asset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
 import { useFullscreen } from "@/hooks/use-fullscreen"
+import { usePasteImages } from "@/hooks/use-paste-images"
 import { formatBytes, sourceFormatLabel } from "@/lib/image/format"
 import {
   applyCrop,
@@ -52,10 +53,22 @@ function Notice({ children }: { children: React.ReactNode }) {
 }
 
 export function ImageEditor() {
-  const { assets, sessionId, addAssets, removeAsset, clearAssets } = useAsset()
+  const {
+    assets,
+    sessionId,
+    replaceAssets,
+    addAssets,
+    removeAsset,
+    clearAssets,
+  } = useAsset()
   const isolated = useCrossOriginIsolated()
   const router = useRouter()
   const images = assets.filter((asset) => asset.file.type.startsWith("image/"))
+
+  // Ctrl/⌘+V adds the copied image to the batch, or starts one.
+  usePasteImages((files) =>
+    images.length > 0 ? addAssets(files) : replaceAssets(files)
+  )
 
   if (images.length === 0) {
     return (

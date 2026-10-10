@@ -63,7 +63,10 @@ export function AssetStrip({
           )
         })}
         <li className="shrink-0">
-          <label className="flex size-16 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground transition-colors focus-within:ring-2 focus-within:ring-ring/50 hover:text-foreground">
+          <label
+            title="Add images (or paste with Ctrl/⌘ + V)"
+            className="flex size-16 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground transition-colors focus-within:ring-2 focus-within:ring-ring/50 hover:text-foreground"
+          >
             <input
               type="file"
               accept="image/*"
@@ -78,7 +81,9 @@ export function AssetStrip({
               }}
             />
             <Plus className="size-5" aria-hidden />
-            <span className="sr-only">Add images</span>
+            <span className="sr-only">
+              Add images (or paste with Ctrl/⌘ + V)
+            </span>
           </label>
         </li>
       </ul>

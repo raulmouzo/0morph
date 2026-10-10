@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 
 import { useAsset } from "@/components/asset-provider"
+import { usePasteImages } from "@/hooks/use-paste-images"
 import { detectCategory } from "@/lib/categories"
 
 function extensionOf(name: string) {
@@ -40,6 +41,8 @@ export function ImportDropzone() {
     replaceAssets(supported)
     setTimeout(() => router.push(category.href), 350)
   }
+
+  usePasteImages(handleFiles)
 
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     handleFiles(Array.from(e.target.files ?? []))
@@ -83,7 +86,8 @@ export function ImportDropzone() {
             Import images
           </h2>
           <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
-            Drop one or more image files. Nothing ever leaves your browser.
+            Drop or paste (Ctrl/⌘ + V) one or more images. Nothing ever leaves
+            your browser.
           </p>
           {unsupported && (
             <p className="font-mono text-xs text-destructive uppercase">
