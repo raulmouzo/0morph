@@ -34,3 +34,6 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# wasm-vips browser build, copied from node_modules by scripts/copy-wasm-vips.mjs
+/public/vendor/wasm-vips/
