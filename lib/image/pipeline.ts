@@ -1,6 +1,12 @@
 import type Vips from "wasm-vips"
 
-import type { Encoding, Geometry, ImageRecipe } from "./recipe"
+import {
+  resizedSize,
+  type Encoding,
+  type Geometry,
+  type ImageRecipe,
+  type Size,
+} from "./recipe"
 
 export type VipsInstance = typeof Vips
 
@@ -62,19 +68,39 @@ export function openSource(
 
 const ROTATION_ANGLES = { 90: "d90", 180: "d180", 270: "d270" } as const
 
-/** Rotates, then flips. Every intermediate image is registered with `own`. */
-function applyGeometry(
-  source: Vips.Image,
-  geometry: Geometry,
-  own: (image: Vips.Image) => Vips.Image
-) {
+type Own = (image: Vips.Image) => Vips.Image
+
+/**
+ * Resamples to exactly `target` with Lanczos3 (libvips' default kernel).
+ * Alpha is premultiplied around the resize so transparent pixels don't
+ * bleed dark fringes into the edges.
+ */
+function resizeTo(image: Vips.Image, target: Size, own: Own) {
+  if (target.width === image.width && target.height === image.height) {
+    return image
+  }
+  const hscale = target.width / image.width
+  const vscale = target.height / image.height
+  if (!image.hasAlpha()) return own(image.resize(hscale, { vscale }))
+
+  const premultiplied = own(image.premultiply())
+  const resized = own(premultiplied.resize(hscale, { vscale }))
+  const unpremultiplied = own(resized.unpremultiply())
+  return own(unpremultiplied.cast(image.format))
+}
+
+/**
+ * Rotates, flips, then resizes once to the final size (resize and max
+ * dimension combined). Every intermediate image is registered with `own`.
+ */
+function applyGeometry(source: Vips.Image, geometry: Geometry, own: Own) {
   let image = source
   if (geometry.rotate !== 0) {
     image = own(image.rot(ROTATION_ANGLES[geometry.rotate]))
   }
   if (geometry.flipHorizontal) image = own(image.flip("horizontal"))
   if (geometry.flipVertical) image = own(image.flip("vertical"))
-  return image
+  return resizeTo(image, resizedSize(image, geometry), own)
 }
 
 function encode(image: Vips.Image, { format, quality }: Encoding) {

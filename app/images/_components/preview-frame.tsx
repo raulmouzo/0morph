@@ -22,7 +22,7 @@ export function PreviewFrame({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-w-0 flex-1 justify-center">
+    <div className="flex min-w-0 flex-1 justify-center md:sticky md:top-6">
       <div
         className="relative"
         style={{

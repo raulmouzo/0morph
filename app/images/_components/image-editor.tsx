@@ -14,6 +14,7 @@ import {
   FORMATS,
   initialRecipe,
   isIdentityGeometry,
+  orientedSize,
   type Encoding,
   type Geometry,
   type ImageRecipe,
@@ -22,6 +23,7 @@ import { CompareView } from "./compare-view"
 import { ExportSettings } from "./export-settings"
 import { OutputSummary } from "./output-summary"
 import { PreviewFrame } from "./preview-frame"
+import { ResizeSettings } from "./resize-settings"
 import { TransformSettings } from "./transform-settings"
 import { useEngineImage } from "./use-engine-image"
 import { useReference, useRender } from "./use-render"
@@ -104,8 +106,11 @@ function Editor({
   const identity = isIdentityGeometry(recipe.geometry)
   const reference = useReference(identity ? null : key, recipe.geometry)
 
-  const updateGeometry = (geometry: Geometry) =>
-    setRecipe((current) => ({ ...current, geometry }))
+  const updateGeometry = (changes: Partial<Geometry>) =>
+    setRecipe((current) => ({
+      ...current,
+      geometry: { ...current.geometry, ...changes },
+    }))
   const updateEncoding = (changes: Partial<Encoding>) =>
     setRecipe((current) => ({
       ...current,
@@ -168,6 +173,11 @@ function Editor({
           <>
             <TransformSettings
               geometry={recipe.geometry}
+              onChange={updateGeometry}
+            />
+            <ResizeSettings
+              geometry={recipe.geometry}
+              oriented={orientedSize(image.info, recipe.geometry)}
               onChange={updateGeometry}
             />
             <ExportSettings

@@ -82,6 +82,38 @@ describe("render", () => {
     transparent.delete()
   })
 
+  it.each([
+    [{ resize: { width: 400, height: 400, keepAspect: true } }, [400, 200]],
+    [{ resize: { width: 300, height: 500, keepAspect: false } }, [300, 500]],
+    [{ maxDimension: 1280 }, [1280, 640]],
+    [{ rotate: 90 as const, maxDimension: 1280 }, [640, 1280]],
+  ])("resizes with %j to %j", async (changes, expected) => {
+    const vips = await loadVips()
+    const source = openSource(vips, await readSample("cameraman-wide.jpg"))
+    const output = render(source, recipe({}, changes))
+    const decoded = vips.Image.newFromBuffer(output.data)
+
+    expect([output.width, output.height]).toEqual(expected)
+    expect([decoded.width, decoded.height]).toEqual(expected)
+    decoded.delete()
+    source.delete()
+  })
+
+  it("keeps transparency when resizing", async () => {
+    const vips = await loadVips()
+    const transparent = vips.Image.black(64, 64, { bands: 4 })
+      .copy({ interpretation: "srgb" })
+      .cast("uchar")
+    const resize = { width: 16, height: 16, keepAspect: true }
+    const output = render(transparent, recipe({ format: "png" }, { resize }))
+    const decoded = vips.Image.newFromBuffer(output.data)
+
+    expect([decoded.width, decoded.height, decoded.bands]).toEqual([16, 16, 4])
+    expect(decoded.getpoint(8, 8)[3]).toBe(0)
+    decoded.delete()
+    transparent.delete()
+  })
+
   it("rotates the output dimensions", async () => {
     const vips = await loadVips()
     const source = openSource(vips, await readSample("cameraman-wide.jpg"))
