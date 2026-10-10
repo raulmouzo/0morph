@@ -57,7 +57,7 @@ export function ImportDropzone() {
     <div
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
-      className="flex w-full flex-col gap-10 overflow-hidden px-6 py-24 sm:px-12 sm:py-20"
+      className="flex w-full flex-col gap-10 overflow-hidden px-6 py-14 sm:px-12 sm:py-12"
     >
       <span
         aria-hidden
@@ -66,8 +66,8 @@ export function ImportDropzone() {
         {watermark}
       </span>
 
-      <div className="flex flex-col items-center gap-6 text-center">
-        <label className="flex size-20 cursor-pointer items-center justify-center border-2 border-foreground transition-colors hover:bg-foreground/5 sm:size-24">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <label className="flex size-20 cursor-pointer items-center justify-center border-2 border-foreground transition-colors hover:bg-foreground/5">
           <input
             type="file"
             accept="image/*"
@@ -75,11 +75,11 @@ export function ImportDropzone() {
             onChange={onInputChange}
             className="sr-only"
           />
-          <Plus className="size-8 text-foreground sm:size-10" />
+          <Plus className="size-8 text-foreground" />
         </label>
 
         <div className="flex flex-col items-center gap-3">
-          <h2 className="font-heading text-2xl font-bold text-foreground uppercase sm:text-4xl">
+          <h2 className="font-heading text-2xl font-bold text-foreground uppercase sm:text-3xl">
             Import images
           </h2>
           <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
