@@ -25,6 +25,7 @@ import {
   isIdentityGeometry,
   isOptimizedForWeb,
   optimizeForWeb,
+  sameGeometry,
   type CropRect,
   type Encoding,
   type Geometry,
@@ -221,6 +222,27 @@ function Editor({
     setOpenSection(next)
   }
 
+  // The before/after pair on screen must share one geometry, or one side is
+  // stretched into the other's frame. Both follow the last output: before
+  // is the original or the reference for that geometry, and while that
+  // reference isn't ready the output stands in for it. Until the output
+  // catches up with an edit to the geometry, that stale pair is blurred.
+  const frameGeometry = output?.input.geometry ?? null
+  const beforeReady =
+    !frameGeometry ||
+    isIdentityGeometry(frameGeometry) ||
+    (reference.output !== null &&
+      sameGeometry(reference.output.input, frameGeometry))
+  const beforeSrc =
+    !output || isIdentityGeometry(output.input.geometry)
+      ? previewUrl
+      : beforeReady
+        ? reference.output!.url
+        : output.url
+  const settling =
+    frameGeometry !== null &&
+    (!sameGeometry(frameGeometry, recipe.geometry) || !beforeReady)
+
   const shown = cropMode.active ? cropMode.size : (output ?? sourceSize)
   const batch = assets.length > 1
   const multiple = selection.ids.length > 1
@@ -331,12 +353,9 @@ function Editor({
             before={
               !cropMode.active && (
                 <CanvasImage
-                  src={
-                    identity
-                      ? previewUrl
-                      : (reference.output?.url ?? previewUrl)
-                  }
+                  src={beforeSrc}
                   alt={`${file.name}, before`}
+                  settling={settling}
                 />
               )
             }
@@ -355,6 +374,7 @@ function Editor({
               <CanvasImage
                 src={output?.url ?? previewUrl}
                 alt={`${file.name}, after`}
+                settling={settling}
               />
             )}
           </ImageCanvas>

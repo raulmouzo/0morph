@@ -112,6 +112,11 @@ export function isIdentityGeometry(geometry: Geometry) {
   )
 }
 
+/** Whether two geometries produce the same pixels. */
+export function sameGeometry(a: Geometry, b: Geometry) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b)
+}
+
 function scaleSize({ width, height }: Size, scale: number): Size {
   return {
     width: Math.max(1, Math.round(width * scale)),

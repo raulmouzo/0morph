@@ -73,10 +73,31 @@ function localPoint(event: React.PointerEvent<HTMLElement>): Point {
 /** Overlay controls take their own clicks; they never start a drag. */
 const stopDrag = (event: React.PointerEvent) => event.stopPropagation()
 
-/** An image filling its artboard frame on the canvas. */
-export function CanvasImage({ src, alt }: { src: string; alt: string }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className="block size-full" />
+/**
+ * An image filling its artboard frame on the canvas. While `settling` it is
+ * blurred: it's a stale frame shown until the new one is ready.
+ */
+export function CanvasImage({
+  src,
+  alt,
+  settling = false,
+}: {
+  src: string
+  alt: string
+  settling?: boolean
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      aria-busy={settling || undefined}
+      className={cn(
+        "block size-full transition-[filter,opacity] duration-300",
+        settling && "opacity-60 blur-md"
+      )}
+    />
+  )
 }
 
 /**

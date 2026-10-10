@@ -10,6 +10,7 @@ import {
   outputSize,
   rotateGeometry,
   type Geometry,
+  sameGeometry,
 } from "./recipe"
 
 const geometry = (changes: Partial<Geometry>): Geometry => ({
@@ -134,5 +135,13 @@ describe("optimizeForWeb", () => {
     expect(optimized.geometry).toEqual(
       geometry({ rotate: 90, maxDimension: 1280 })
     )
+  })
+})
+
+describe("sameGeometry", () => {
+  it("compares geometries by value", () => {
+    const rotated = { ...IDENTITY_GEOMETRY, rotate: 90 as const }
+    expect(sameGeometry(IDENTITY_GEOMETRY, { ...IDENTITY_GEOMETRY })).toBe(true)
+    expect(sameGeometry(IDENTITY_GEOMETRY, rotated)).toBe(false)
   })
 })
