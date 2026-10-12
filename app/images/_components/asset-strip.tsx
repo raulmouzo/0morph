@@ -92,7 +92,7 @@ export function AssetStrip({
                 title="Shift + click or Ctrl/⌘ + click to select several"
                 onClick={(event) => onSelect(asset.id, selectModeOf(event))}
                 className={cn(
-                  "block size-16 overflow-hidden rounded-md border-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "relative block size-16 overflow-hidden rounded-md border-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   active
                     ? "border-primary"
                     : selected
@@ -100,11 +100,16 @@ export function AssetStrip({
                       : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >
+                {/* Placeholder while a large image decodes. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-0 animate-pulse bg-muted"
+                />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={asset.previewUrl}
                   alt=""
-                  className="size-full object-cover"
+                  className="relative size-full object-cover"
                 />
               </button>
               <button

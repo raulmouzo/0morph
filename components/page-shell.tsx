@@ -1,7 +1,7 @@
 import { ArrowUpRight } from "lucide-react"
 import { Suspense } from "react"
 
-import { StatusBar } from "@/components/status-bar"
+import { StatusBar, StatusBarSkeleton } from "@/components/status-bar"
 import { AUTHOR } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
@@ -23,7 +23,7 @@ export function PageShell({
         width === "default" ? "max-w-4xl" : "max-w-[100rem]"
       )}
     >
-      <Suspense fallback={<div className="h-9 w-full" />}>
+      <Suspense fallback={<StatusBarSkeleton />}>
         <StatusBar />
       </Suspense>
       <div className={cn("flex-1 px-4", width === "default" && "sm:px-0")}>

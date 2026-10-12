@@ -110,6 +110,11 @@ export function SampleGallery({ className }: { className?: string }) {
               title={`${sample.alt} · Photo by ${sample.author}`}
               className="group relative size-16 shrink-0 overflow-hidden rounded-2xl border border-border transition-transform hover:scale-105 disabled:pointer-events-none disabled:opacity-60 sm:size-20"
             >
+              {/* Placeholder until the thumbnail paints over it. */}
+              <span
+                aria-hidden
+                className="absolute inset-0 animate-pulse bg-muted"
+              />
               <Image
                 src={sample.src}
                 alt={sample.alt}

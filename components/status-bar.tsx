@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { getLastCommit } from "@/lib/git"
+import { cn } from "@/lib/utils"
 import { A_CORUNA, getWeather } from "@/lib/weather"
 
 export async function StatusBar() {
@@ -72,6 +73,26 @@ export async function StatusBar() {
         )}
 
         <ThemeToggle className="rounded-sm p-2 transition-colors hover:bg-foreground/10 dark:hover:bg-muted/25 dark:hover:brightness-150" />
+      </div>
+    </div>
+  )
+}
+
+/** Stand-in while the weather and the last commit load. */
+export function StatusBarSkeleton() {
+  const bar = "h-4 animate-pulse rounded-sm bg-foreground/10"
+  return (
+    <div
+      aria-hidden
+      className="flex h-9 w-full items-center justify-between px-4 select-none"
+    >
+      <div className="flex items-center gap-4 p-2">
+        <div className={cn(bar, "w-24")} />
+        <div className={cn(bar, "w-28")} />
+      </div>
+      <div className="flex items-center gap-4 p-2">
+        <div className={cn(bar, "hidden w-56 md:block")} />
+        <div className={cn(bar, "size-4")} />
       </div>
     </div>
   )
