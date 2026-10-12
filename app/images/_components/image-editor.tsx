@@ -6,11 +6,11 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useId, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 
 import { Artboard } from "@/components/artboard"
+import { ImportDropzone } from "@/components/import-dropzone"
 import { useAsset, type Asset } from "@/components/asset-provider"
 import { Button } from "@/components/ui/button"
 import { useCrossOriginIsolated } from "@/hooks/use-cross-origin-isolated"
@@ -38,6 +38,7 @@ import {
   type SelectMode,
 } from "@/lib/selection"
 import { cn } from "@/lib/utils"
+import { SampleGallery } from "../../_components/sample-gallery"
 import { AssetStrip } from "./asset-strip"
 import { BatchExport } from "./batch-export"
 import { CropView } from "./crop-view"
@@ -75,16 +76,46 @@ function Notice({ children }: { children: React.ReactNode }) {
   )
 }
 
+const FEATURES = [
+  "Resize",
+  "Crop",
+  "Rotate",
+  "Convert",
+  "Compress",
+  "Strip EXIF",
+  "Batch",
+]
+
+/** Landing on /images without images (a reload, a shared link): start here. */
+function EmptyEditor() {
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-8 py-6">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <h1 className="font-heading text-4xl font-bold text-foreground uppercase sm:text-6xl">
+          Image editor
+        </h1>
+        <ul className="flex flex-wrap justify-center gap-x-2 font-mono text-xs text-muted-foreground uppercase">
+          {FEATURES.map((feature, i) => (
+            <li key={feature} className="flex gap-2">
+              {i > 0 && <span aria-hidden>·</span>}
+              {feature}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <Artboard className="mx-auto flex w-full">
+        <div className="flex h-full w-full items-center justify-center">
+          <ImportDropzone />
+        </div>
+      </Artboard>
+      <SampleGallery />
+    </div>
+  )
+}
+
 export function ImageEditor() {
-  const {
-    assets,
-    sessionId,
-    skipped,
-    replaceAssets,
-    addAssets,
-    removeAsset,
-    clearAssets,
-  } = useAsset()
+  const { assets, sessionId, skipped, addAssets, removeAsset, clearAssets } =
+    useAsset()
   const isolated = useCrossOriginIsolated()
   const router = useRouter()
   // Stable while the assets don't change, like the batch jobs built on it.
@@ -93,24 +124,23 @@ export function ImageEditor() {
     [assets]
   )
 
-  // Ctrl/⌘+V adds the copied image to the batch, or starts one.
-  usePasteImages((files) =>
-    images.length > 0 ? addAssets(files) : replaceAssets(files)
+  // Ctrl/⌘+V adds the copied image to the batch. With no images yet, the
+  // import dropzone on screen takes the paste and starts one.
+  usePasteImages((files) => {
+    if (images.length > 0) addAssets(files)
+  })
+
+  // Back clears the images once the editor is gone: clearing them first
+  // would flash the empty state while the home page loads.
+  const leaving = useRef(false)
+  useEffect(
+    () => () => {
+      if (leaving.current) clearAssets()
+    },
+    [clearAssets]
   )
 
-  if (images.length === 0) {
-    return (
-      <Notice>
-        <p className="text-sm text-muted-foreground">No image loaded yet.</p>
-        <Link
-          href="/"
-          className="font-mono text-xs text-primary underline underline-offset-4"
-        >
-          Go back and import one
-        </Link>
-      </Notice>
-    )
-  }
+  if (images.length === 0) return <EmptyEditor />
 
   if (isolated === false) {
     return (
@@ -136,7 +166,7 @@ export function ImageEditor() {
       onAdd={addAssets}
       onRemove={removeAsset}
       onReset={() => {
-        clearAssets()
+        leaving.current = true
         router.push("/")
       }}
     />
