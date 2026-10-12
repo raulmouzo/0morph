@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Link from "next/link"
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import {
@@ -18,23 +19,27 @@ export async function StatusBar() {
   return (
     <div className="flex h-9 w-full items-center justify-between px-4 font-mono text-xs text-muted-foreground select-none">
       <div className="flex items-center gap-4">
-        <div className="flex gap-2 rounded-sm p-2 transition-colors hover:bg-foreground/10 dark:hover:bg-muted/25 dark:hover:brightness-150">
+        <Link
+          href="/"
+          aria-label="0morph, home"
+          className="flex gap-2 rounded-sm p-2 transition-colors hover:bg-foreground/10 dark:hover:bg-muted/25 dark:hover:brightness-150"
+        >
           <Image
             src="/icons/isotype.svg"
-            alt="0morph"
+            alt=""
             width={32}
             height={32}
             className="dark:hidden"
           />
           <Image
             src="/icons/isotype-dark.svg"
-            alt="0morph"
+            alt=""
             width={32}
             height={32}
             className="hidden dark:block"
           />
           <span className="font-bold">0morph</span>
-        </div>
+        </Link>
 
         {weather && (
           <div className="flex gap-2 rounded-sm p-2 transition-colors hover:bg-foreground/10 dark:hover:bg-muted/25 dark:hover:brightness-150">
