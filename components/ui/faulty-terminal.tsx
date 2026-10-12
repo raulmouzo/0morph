@@ -4,6 +4,7 @@ import { Color, Mesh, Program, Renderer, Triangle } from "ogl"
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   type CSSProperties,
@@ -252,6 +253,8 @@ export interface FaultyTerminalProps extends HTMLAttributes<HTMLDivElement> {
   dpr?: number
   pageLoadAnimation?: boolean
   brightness?: number
+  /** Called once the first frame is on screen. */
+  onReady?: () => void
   className?: string
   style?: CSSProperties
 }
@@ -276,10 +279,12 @@ export function FaultyTerminal({
   dpr,
   pageLoadAnimation = true,
   brightness = 1,
+  onReady,
   className,
   style,
   ...rest
 }: FaultyTerminalProps) {
+  const ready = useEffectEvent(() => onReady?.())
   const containerRef = useRef<HTMLDivElement>(null)
   const mouseRef = useRef({ x: 0.5, y: 0.5 })
   const smoothMouseRef = useRef({ x: 0.5, y: 0.5 })
@@ -372,6 +377,7 @@ export function FaultyTerminal({
     resizeObserver.observe(ctn)
     resize()
 
+    let firstFrameDrawn = false
     const update = (t: number) => {
       rafRef.current = requestAnimationFrame(update)
 
@@ -407,6 +413,10 @@ export function FaultyTerminal({
       }
 
       renderer.render({ scene: mesh })
+      if (!firstFrameDrawn) {
+        firstFrameDrawn = true
+        ready()
+      }
     }
     rafRef.current = requestAnimationFrame(update)
     ctn.appendChild(gl.canvas)
