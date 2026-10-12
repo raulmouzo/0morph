@@ -29,20 +29,21 @@ export function PageShell({
       <div className={cn("flex-1 px-4", width === "default" && "sm:px-0")}>
         {children}
       </div>
-      <footer className="flex h-12 items-center justify-center px-4 font-mono text-xs text-muted-foreground">
+      {/* Left out of the wide tools, where it would cover their controls. */}
+      {width === "default" && (
         <a
           href={AUTHOR.url}
           target="_blank"
           rel="author noreferrer"
-          className="group flex items-center gap-1 rounded-sm p-2 transition-colors hover:bg-foreground/10 hover:text-foreground dark:hover:bg-muted/25"
+          className="group fixed right-4 bottom-4 z-40 flex animate-in items-center gap-1.5 rounded-full border border-border bg-background/85 px-4 py-2 font-mono text-xs text-muted-foreground shadow-sm backdrop-blur-sm transition-colors fade-in slide-in-from-bottom-2 hover:text-foreground"
         >
-          Made by <span className="font-bold">{AUTHOR.name}</span>
+          Discover more apps
           <ArrowUpRight
-            className="size-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             aria-hidden
           />
         </a>
-      </footer>
+      )}
     </div>
   )
 }
