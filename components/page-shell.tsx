@@ -20,15 +20,15 @@ export function PageShell({
     <div
       className={cn(
         "mx-auto flex min-h-screen w-full flex-col",
-        width === "default" ? "max-w-4xl" : "max-w-[100rem]"
+        // The default column is 56rem (max-w-4xl) of content plus the side
+        // padding, so it never touches the screen edges.
+        width === "default" ? "max-w-[calc(56rem+3rem)]" : "max-w-[100rem]"
       )}
     >
       <Suspense fallback={<StatusBarSkeleton />}>
         <StatusBar />
       </Suspense>
-      <div className={cn("flex-1 px-4", width === "default" && "sm:px-0")}>
-        {children}
-      </div>
+      <div className="flex-1 px-4 sm:px-6">{children}</div>
       {/* Left out of the wide tools, where it would cover their controls. */}
       {width === "default" && (
         <a
