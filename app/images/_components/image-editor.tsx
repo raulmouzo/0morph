@@ -50,6 +50,9 @@ import { useEngineImage } from "./use-engine-image"
 import { useReference, useRender } from "./use-render"
 import { WebPresetButton } from "./web-preset-button"
 
+// Below Tailwind's `md`, where the editor's columns stack.
+const PHONE_QUERY = "(max-width: 47.99rem)"
+
 // Recipes are compared by identity to know when to render again, so an
 // image without edits must get the same default recipe on every render.
 const defaultRecipes = new Map<string, ImageRecipe>()
@@ -263,7 +266,12 @@ function Editor({
   const batch = assets.length > 1
   const multiple = selection.ids.length > 1
 
-  const fullscreen = useFullscreen()
+  // Phones open straight into full screen: stacked under the settings, the
+  // canvas is too small to work with. The editor only renders on the client
+  // (the images live in browser state), so the media query can be read here.
+  const fullscreen = useFullscreen({
+    initial: () => window.matchMedia(PHONE_QUERY).matches,
+  })
   // Full screen hides the settings in a drawer on the right.
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsId = useId()

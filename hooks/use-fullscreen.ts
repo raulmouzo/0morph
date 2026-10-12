@@ -5,9 +5,14 @@ import { useEffect, useState } from "react"
  * fixed overlay), and the page also enters browser full screen where the
  * Fullscreen API is available; on browsers without it (e.g. iPhone Safari)
  * the overlay alone fills the window. Esc leaves either way.
+ *
+ * `initial` starts the mode already on. Only the overlay can start that way:
+ * browser full screen needs a user gesture.
  */
-export function useFullscreen() {
-  const [active, setActive] = useState(false)
+export function useFullscreen({
+  initial = false,
+}: { initial?: boolean | (() => boolean) } = {}) {
+  const [active, setActive] = useState(initial)
 
   useEffect(() => {
     if (!active) return
